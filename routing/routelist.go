@@ -1,5 +1,8 @@
 package routes
 
+import "fmt"
+import "../log"
+
 type routeList struct {
 	routes []Router
 }
@@ -9,7 +12,8 @@ func (this *routeList) Route(section string, req Request, vars VariableList) Rou
 }
 
 func (this *routeList) GetSubroutes(out chan<- Router) {
-	for _, route := range this.routes {
+	for i, route := range this.routes {
+		fmt.Fprint(log.DebugLog(), "\n", i)
 		out <- route
 	}
 	close(out)

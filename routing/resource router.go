@@ -1,9 +1,12 @@
 package routes
 
+import "fmt"
+import "../log"
+
 type memberRouter struct {
 	variablename string
 	getter       func(string) Variable
-	resource     Router
+	resource     RouteBranch
 }
 
 func (this *memberRouter) Route(section string, req Request, vars VariableList) RoutingStatus {
@@ -15,11 +18,15 @@ func (this *memberRouter) Route(section string, req Request, vars VariableList) 
 	return this.resource.Route(section, req, vars)
 }
 
-func (this *memberRouter) GetSubroutes(out chan<- Router) {
-	this.resource.(RouteBranch).GetSubroutes(out)
+func (this *memberRouter) AddRoute(router Router) {
+	this.resource.AddRoute(router)
 }
 
-func newMemberRouter(variablename string, getter func(string) Variable, resource Router) *memberRouter {
+func (this *memberRouter) GetSubroutes(out chan<- Router) {
+	this.resource.GetSubroutes(out)
+}
+
+func newMemberRouter(variablename string, getter func(string) Variable, resource RouteBranch) *memberRouter {
 	this := new(memberRouter)
 	this.variablename = variablename
 	this.getter = getter
@@ -38,14 +45,24 @@ type ResourceRouter struct {
 }
 
 func (this *ResourceRouter) Route(section string, req Request, vars VariableList) RoutingStatus {
+	log.Info("\nResource Routing!")
+
+	fmt.Fprint(log.DebugLog(), "\nComparing \"", section, "\" with \"", this.name, "\"")
 	if this.name == section {
+		log.Debug("yup!")
 		return this.collectionfuncs.Route(section, req, vars)
 	}
+	log.Debug("nope!")
 	return route_elsewhere
 }
 
 func (this *ResourceRouter) GetSubroutes(out chan<- Router) {
-	this.collectionfuncs.GetSubroutes(out)
+	log.Debug("Getting Subroutes")
+	this.Collection.GetSubroutes(out)
+}
+
+func (this *ResourceRouter) AddRoute(router Router) {
+	this.Collection.AddRoute(router)
 }
 
 func Resource(name string, restfuncs map[string]HandlerFunc, variablename string, getter func(index string) Variable) *ResourceRouter {
@@ -62,6 +79,7 @@ func Resource(name string, restfuncs map[string]HandlerFunc, variablename string
 
 	function = restfuncs["index"]
 	if function != nil {
+		log.Debug("Adding an index route")
 		resource.Collection.AddRoute(Get("/", function))
 	}
 
