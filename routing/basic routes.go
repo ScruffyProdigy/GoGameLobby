@@ -2,6 +2,7 @@ package routes
 
 import "fmt"
 import "../log"
+import "net/http"
 
 type basicRoute struct {
 	method  string
@@ -9,7 +10,7 @@ type basicRoute struct {
 	handler HandlerFunc
 }
 
-func (this *basicRoute) Route(section string, req Request, vars VariableList) RoutingStatus {
+func (this *basicRoute) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
 	fmt.Fprint(log.DebugLog(), "\nComparing \"", section, "\" with \"", this.name, "\"")
 	fmt.Fprint(log.DebugLog(), "\nComparing \"", req.Method, "\" with \"", this.method, "\"")
 	if section == this.name && req.Method == this.method {
@@ -18,7 +19,7 @@ func (this *basicRoute) Route(section string, req Request, vars VariableList) Ro
 	return route_elsewhere
 }
 
-func (this *basicRoute) HandleRequest(res Response, req Request, vars VariableList) {
+func (this *basicRoute) HandleRequest(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
 	this.handler(res, req, vars)
 }
 

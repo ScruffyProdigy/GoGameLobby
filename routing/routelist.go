@@ -2,12 +2,13 @@ package routes
 
 import "fmt"
 import "../log"
+import "net/http"
 
 type routeList struct {
 	routes []Router
 }
 
-func (this *routeList) Route(section string, req Request, vars VariableList) RoutingStatus {
+func (this *routeList) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
 	return route_continue
 }
 

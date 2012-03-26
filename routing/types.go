@@ -2,10 +2,6 @@ package routes
 
 import "net/http"
 
-type Response http.ResponseWriter
-type Request *http.Request
-type Variable interface{}
-type VariableList map[string]Variable
 type RoutingStatus int
 
 const (
@@ -15,15 +11,15 @@ const (
 	route_here
 )
 
-type HandlerFunc func(Response, Request, VariableList)
+type HandlerFunc func(http.ResponseWriter, *http.Request, map[string]interface{})
 
 type Router interface {
-	Route(section string, req Request, vars VariableList) RoutingStatus
+	Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus
 }
 
 type RouteTerminal interface {
 	Router
-	HandleRequest(res Response, req Request, vars VariableList)
+	HandleRequest(res http.ResponseWriter, req *http.Request, vars map[string]interface{})
 }
 
 type RouteBranch interface {

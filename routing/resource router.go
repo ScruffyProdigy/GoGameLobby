@@ -2,14 +2,15 @@ package routes
 
 import "fmt"
 import "../log"
+import "net/http"
 
 type memberRouter struct {
 	variablename string
-	getter       func(string) Variable
+	getter       func(string) interface{}
 	resource     RouteBranch
 }
 
-func (this *memberRouter) Route(section string, req Request, vars VariableList) RoutingStatus {
+func (this *memberRouter) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
 	received := this.getter(section)
 	if received == nil {
 		return route_elsewhere
@@ -26,7 +27,7 @@ func (this *memberRouter) GetSubroutes(out chan<- Router) {
 	this.resource.GetSubroutes(out)
 }
 
-func newMemberRouter(variablename string, getter func(string) Variable, resource RouteBranch) *memberRouter {
+func newMemberRouter(variablename string, getter func(string) interface{}, resource RouteBranch) *memberRouter {
 	this := new(memberRouter)
 	this.variablename = variablename
 	this.getter = getter
@@ -44,7 +45,7 @@ type ResourceRouter struct {
 	Member     RouteBranch
 }
 
-func (this *ResourceRouter) Route(section string, req Request, vars VariableList) RoutingStatus {
+func (this *ResourceRouter) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
 	log.Info("\nResource Routing!")
 
 	fmt.Fprint(log.DebugLog(), "\nComparing \"", section, "\" with \"", this.name, "\"")
@@ -65,7 +66,7 @@ func (this *ResourceRouter) AddRoute(router Router) {
 	this.Collection.AddRoute(router)
 }
 
-func Resource(name string, restfuncs map[string]HandlerFunc, variablename string, getter func(index string) Variable) *ResourceRouter {
+func Resource(name string, restfuncs map[string]HandlerFunc, variablename string, getter func(index string) interface{}) *ResourceRouter {
 	resource := new(ResourceRouter)
 	resource.name = name
 	resource.collectionfuncs = newRouteList()
