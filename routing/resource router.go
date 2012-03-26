@@ -1,25 +1,25 @@
 package routes
 
-type memberRouter struct{
+type memberRouter struct {
 	variablename string
-	getter func(string)Variable
-	resource Router
+	getter       func(string) Variable
+	resource     Router
 }
 
-func (this *memberRouter) Route(section string, req Request, vars VariableList) RoutingStatus{
+func (this *memberRouter) Route(section string, req Request, vars VariableList) RoutingStatus {
 	received := this.getter(section)
-	if(received == nil){
+	if received == nil {
 		return route_elsewhere
 	}
 	vars[this.variablename] = received
-	return this.resource.Route(section,req,vars)
+	return this.resource.Route(section, req, vars)
 }
 
-func (this *memberRouter) GetSubroutes(out chan<- Router){
+func (this *memberRouter) GetSubroutes(out chan<- Router) {
 	this.resource.(RouteBranch).GetSubroutes(out)
 }
 
-func newMemberRouter(variablename string,getter func(string)Variable,resource Router) *memberRouter{
+func newMemberRouter(variablename string, getter func(string) Variable, resource Router) *memberRouter {
 	this := new(memberRouter)
 	this.variablename = variablename
 	this.getter = getter
@@ -27,75 +27,73 @@ func newMemberRouter(variablename string,getter func(string)Variable,resource Ro
 	return this
 }
 
-type ResourceRouter struct{
-	name string
+type ResourceRouter struct {
+	name            string
 	collectionfuncs *routeList
-	memberfuncs *routeList
-	
-//public
+	memberfuncs     *routeList
+
+	//public
 	Collection RouteBranch
-	Member RouteBranch
+	Member     RouteBranch
 }
 
-func (this *ResourceRouter) Route(section string, req Request,vars VariableList) RoutingStatus{
-	if this.name == section{
-		return this.collectionfuncs.Route(section,req,vars)
+func (this *ResourceRouter) Route(section string, req Request, vars VariableList) RoutingStatus {
+	if this.name == section {
+		return this.collectionfuncs.Route(section, req, vars)
 	}
 	return route_elsewhere
 }
 
-func(this *ResourceRouter) GetSubroutes(out chan<- Router){
+func (this *ResourceRouter) GetSubroutes(out chan<- Router) {
 	this.collectionfuncs.GetSubroutes(out)
 }
 
-func Resource(name string, restfuncs map[string]HandlerFunc, variablename string,getter func(index string)Variable) *ResourceRouter{
+func Resource(name string, restfuncs map[string]HandlerFunc, variablename string, getter func(index string) Variable) *ResourceRouter {
 	resource := new(ResourceRouter)
 	resource.name = name
 	resource.collectionfuncs = newRouteList()
 	resource.memberfuncs = newRouteList()
 	resource.Collection = resource.collectionfuncs
 	resource.Member = resource.memberfuncs
-	
-	
-	resource.Collection.AddRoute(newMemberRouter(variablename,getter,resource.Member));
-	
+
+	resource.Collection.AddRoute(newMemberRouter(variablename, getter, resource.Member))
+
 	var function HandlerFunc
-	
-	
+
 	function = restfuncs["index"]
-	if(function != nil){
-		resource.Collection.AddRoute(Get("/",function))
+	if function != nil {
+		resource.Collection.AddRoute(Get("/", function))
 	}
-	
+
 	function = restfuncs["new"]
-	if(function != nil){
-		resource.Collection.AddRoute(Get("new",function))
+	if function != nil {
+		resource.Collection.AddRoute(Get("new", function))
 	}
-	
+
 	function = restfuncs["create"]
-	if(function != nil){
-		resource.Collection.AddRoute(Post("/",function))
+	if function != nil {
+		resource.Collection.AddRoute(Post("/", function))
 	}
-	
+
 	function = restfuncs["show"]
-	if(function != nil){
-		resource.Member.AddRoute(Get("/",function))
+	if function != nil {
+		resource.Member.AddRoute(Get("/", function))
 	}
-	
+
 	function = restfuncs["edit"]
-	if(function != nil){
-		resource.Member.AddRoute(Get("edit",function))
+	if function != nil {
+		resource.Member.AddRoute(Get("edit", function))
 	}
-	
+
 	function = restfuncs["update"]
-	if(function != nil){
-		resource.Member.AddRoute(Put("/",function))
+	if function != nil {
+		resource.Member.AddRoute(Put("/", function))
 	}
-	
+
 	function = restfuncs["delete"]
-	if(function != nil){
-		resource.Member.AddRoute(Delete("/",function))
+	if function != nil {
+		resource.Member.AddRoute(Delete("/", function))
 	}
-	
+
 	return resource
 }

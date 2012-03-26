@@ -3,6 +3,6 @@ package main
 import _ "./controllers"
 import "./routing"
 
-func main(){
+func main() {
 	routes.Implement(routes.Root)
 }
