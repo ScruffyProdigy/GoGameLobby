@@ -1,49 +1,74 @@
 package controller
 
-import "../routing"
-import "fmt"
-import "strconv"
-import "net/http"
+import (
+	"../log"
+	"../routing"
+	"fmt"
+	"launchpad.net/mgo"
+	"launchpad.net/mgo/bson"
+	"net/http"
+	"strconv"
+)
 
 type User struct {
-	name   string
-	points int
+	GamerTag string
+	Points   int
 }
 
 func init() {
-	users := []User{{"Cole", 3}, {"Ryan", 2}}
+	session, err := mgo.Dial("localhost")
+	if err != nil {
+		log.Error("\nError - Please Launch Mongo before running this\n")
+		panic(err)
+	}
+
+	collection := session.DB("test").C("users")
 
 	var indexer = func(s string) interface{} {
-		i, err := strconv.Atoi(s)
+		var result User
+
+		query := bson.M{"name": s}
+
+		err = collection.Find(query).One(&result)
 		if err != nil {
 			return nil
 		}
-		i--
-		if i < 0 {
-			return nil
-		}
-		if i >= len(users) {
-			return nil
-		}
-		return users[i]
+
+		return result
 	}
 
 	rest := map[string]routes.HandlerFunc{
 		"index": func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
+
+			var users []User
+			err = collection.Find(bson.M{}).All(&users)
+			if err != nil {
+				panic(err)
+			}
+
 			page := "<html><head><title>Users</title></head><body><ul>"
 			for _, user := range users {
-				page += "<li>" + user.name + "</li>"
+				page += "<li><a href='/users/" + user.Name + "'>" + user.Name + " - " + strconv.Itoa(user.Points) + "</a></li>"
 			}
 			page += "</body></html>"
 
 			fmt.Fprint(res, page)
 		},
 		"show": func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
-			page := "<html><head><title>User</title></head><body><h1>" + vars["user"].(User).name + "</h1><p>" + strconv.Itoa(vars["user"].(User).points) + "</p></body></html>"
+			page := "<html><head><title>User</title></head><body><h1>" + vars["user"].(User).Name + "</h1><p>" + strconv.Itoa(vars["user"].(User).Points) + "</p></body></html>"
 
 			fmt.Fprint(res, page)
 		},
 	}
 
-	routes.Root.AddRoute(routes.Resource("users", rest, "user", indexer))
+	userResource := routes.Resource("users", rest, "user", indexer)
+	userResource.Collection.AddRoute(routes.Get("foo", func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
+		err := collection.Insert(&User{"Foo", 1})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Fprint(res, "Okay, it's done!")
+	}))
+
+	routes.Root.AddRoute(userResource)
 }

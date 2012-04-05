@@ -10,10 +10,25 @@ func EndWare(root RouteBranch) rack.Middleware {
 		defer func() {
 			//if there are any errors handling the request, render a 500 page
 			if rec := recover(); rec != nil {
-				err := rec.(error)
+				var error_string string
 				log.Info("500")
 				w.WriteHeader(500)
-				fmt.Fprint(w, "<html><head><title>Error</title></head><body><h1>Error</h1><p>", err.Error(), "</p></body></html>")
+
+				fmt.Fprint(w, "<html><head><title>Error</title></head><body><h1>Error</h1>")
+
+				err, isError := rec.(error)
+				str, isString := rec.(string)
+
+				if isError {
+					error_string = err.Error()
+				} else if isString {
+					error_string = str
+				} else {
+					error_string = "Unknown Error"
+				}
+
+				fmt.Fprint(w, "<p>", error_string, "</p></body></html>")
+
 			}
 		}()
 		var parsedRoute = vars["parsedRoute"].([]string)
