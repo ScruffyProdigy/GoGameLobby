@@ -27,7 +27,7 @@ func init() {
 	var indexer = func(s string) interface{} {
 		var result User
 
-		query := bson.M{"name": s}
+		query := bson.M{"gamertag": s}
 
 		err = collection.Find(query).One(&result)
 		if err != nil {
@@ -48,14 +48,14 @@ func init() {
 
 			page := "<html><head><title>Users</title></head><body><ul>"
 			for _, user := range users {
-				page += "<li><a href='/users/" + user.Name + "'>" + user.Name + " - " + strconv.Itoa(user.Points) + "</a></li>"
+				page += "<li><a href='/users/" + user.GamerTag + "'>" + user.GamerTag + " - " + strconv.Itoa(user.Points) + "</a></li>"
 			}
 			page += "</body></html>"
 
 			fmt.Fprint(res, page)
 		},
 		"show": func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
-			page := "<html><head><title>User</title></head><body><h1>" + vars["user"].(User).Name + "</h1><p>" + strconv.Itoa(vars["user"].(User).Points) + "</p></body></html>"
+			page := "<html><head><title>User</title></head><body><h1>" + vars["user"].(User).GamerTag + "</h1><p>" + strconv.Itoa(vars["user"].(User).Points) + "</p></body></html>"
 
 			fmt.Fprint(res, page)
 		},
