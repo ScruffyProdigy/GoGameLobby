@@ -19,7 +19,7 @@ func (this *basicRoute) Route(section string, req *http.Request, vars map[string
 	return route_elsewhere
 }
 
-func (this *basicRoute) HandleRequest(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
+func (this *basicRoute) HandleRequest(res Responder, req *http.Request, vars map[string]interface{}) {
 	this.handler(res, req, vars)
 }
 

@@ -3,16 +3,18 @@ package controller
 import (
 	"../log"
 	"../routing"
-	"fmt"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 	"net/http"
-	"strconv"
 )
 
 type User struct {
 	GamerTag string
 	Points   int
+}
+
+func (this User) Url() []string {
+	return []string{"users", this.GamerTag}
 }
 
 func init() {
@@ -38,7 +40,7 @@ func init() {
 	}
 
 	rest := map[string]routes.HandlerFunc{
-		"index": func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
+		"index": func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
 
 			var users []User
 			err = collection.Find(bson.M{}).All(&users)
@@ -46,28 +48,28 @@ func init() {
 				panic(err)
 			}
 
-			page := "<html><head><title>Users</title></head><body><ul>"
-			for _, user := range users {
-				page += "<li><a href='/users/" + user.GamerTag + "'>" + user.GamerTag + " - " + strconv.Itoa(user.Points) + "</a></li>"
-			}
-			page += "</body></html>"
+			vars["users"] = users
+			vars["title"] = "Users"
+			vars["layout"] = "base"
 
-			fmt.Fprint(res, page)
+			res.Render("users/index")
 		},
-		"show": func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
-			page := "<html><head><title>User</title></head><body><h1>" + vars["user"].(User).GamerTag + "</h1><p>" + strconv.Itoa(vars["user"].(User).Points) + "</p></body></html>"
-
-			fmt.Fprint(res, page)
+		"show": func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
+			user := vars["user"].(User)
+			vars["title"] = user.GamerTag
+			vars["layout"] = "base"
+			res.Render("users/show")
 		},
 	}
 
 	userResource := routes.Resource("users", rest, "user", indexer)
-	userResource.Collection.AddRoute(routes.Get("foo", func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
-		err := collection.Insert(&User{"Foo", 1})
+	userResource.Collection.AddRoute(routes.Get("foo", func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
+		user := User{"Foo", 1}
+		err := collection.Insert(&user)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Fprint(res, "Okay, it's done!")
+		res.RedirectTo(user)
 	}))
 
 	routes.Root.AddRoute(userResource)

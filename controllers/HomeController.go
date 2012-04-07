@@ -1,14 +1,15 @@
 package controller
 
 import "../routing"
-import "fmt"
 import "../log"
 import "net/http"
 
 func init() {
-	root := routes.Get("/", func(res http.ResponseWriter, req *http.Request, vars map[string]interface{}) {
+	root := routes.Get("/", func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
 		log.Info("Made it into here")
-		fmt.Fprint(res, "<html><head><title>Test</title></head><body>Hello World</body></html>")
+		vars["layout"] = "none"
+		vars["title"] = "Testing - 1 - 2 - 3"
+		res.Render("test")
 	})
 	routes.Root.AddRoute(root)
 }

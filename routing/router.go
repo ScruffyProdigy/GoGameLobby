@@ -1,38 +1,22 @@
 package routes
 
-import "net/http"
-import "../log"
-import "fmt"
-import "../rack"
+import (
+	"../log"
+	"../rack"
+	"../templater"
+	"fmt"
+	"net/http"
+)
 
-func EndWare(root RouteBranch) rack.Middleware {
+func RouteWare(root RouteBranch) rack.Middleware {
 	return func(w http.ResponseWriter, r *http.Request, vars map[string]interface{}, next rack.NextFunc) {
-		defer func() {
-			//if there are any errors handling the request, render a 500 page
-			if rec := recover(); rec != nil {
-				var error_string string
-				log.Info("500")
-				w.WriteHeader(500)
+		//		defer handleErrors(w)
 
-				fmt.Fprint(w, "<html><head><title>Error</title></head><body><h1>Error</h1>")
+		parsedRoute := vars["parsedRoute"].([]string)
+		currentRoute := root
 
-				err, isError := rec.(error)
-				str, isString := rec.(string)
+		w2 := createResponder(w, vars)
 
-				if isError {
-					error_string = err.Error()
-				} else if isString {
-					error_string = str
-				} else {
-					error_string = "Unknown Error"
-				}
-
-				fmt.Fprint(w, "<p>", error_string, "</p></body></html>")
-
-			}
-		}()
-		var parsedRoute = vars["parsedRoute"].([]string)
-		var currentRoute = root
 		for _, section := range parsedRoute {
 			found := false
 
@@ -46,7 +30,8 @@ func EndWare(root RouteBranch) rack.Middleware {
 					currentRoute = subroute.(RouteBranch)
 					break
 				case route_here:
-					subroute.(RouteTerminal).HandleRequest(w, r, vars)
+					subroute.(RouteTerminal).HandleRequest(w2, r, vars)
+					next()
 					return
 				}
 			}
@@ -58,5 +43,31 @@ func EndWare(root RouteBranch) rack.Middleware {
 				return
 			}
 		}
+	}
+}
+
+func RenderWare(w http.ResponseWriter, r *http.Request, vars map[string]interface{}, next rack.NextFunc) {
+	layout, castable := vars["layout"].(string)
+	if !castable {
+		log.Debug("\nCouldn't find Layout")
+		layout = "base"
+	}
+
+	_, castable = vars["body"].(string)
+	if !castable {
+		log.Debug("\nCouldn't find Body")
+		vars["body"] = ""
+	}
+
+	log.Debug("\nLayout: " + layout)
+	log.Debug("\nTesting!")
+	L := templater.Get("layouts/" + layout)
+	fmt.Fprint(log.DebugLog(), "\nResult:", L)
+	if L == nil {
+		log.Debug("\nNot Found - printing body separate")
+		fmt.Fprint(w, vars["body"].(string))
+	} else {
+		log.Debug("\nFound - rendering template")
+		L.Execute(w, vars)
 	}
 }

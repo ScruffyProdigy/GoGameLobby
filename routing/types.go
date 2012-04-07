@@ -11,7 +11,7 @@ const (
 	route_here
 )
 
-type HandlerFunc func(http.ResponseWriter, *http.Request, map[string]interface{})
+type HandlerFunc func(Responder, *http.Request, map[string]interface{})
 
 type Router interface {
 	Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus
@@ -19,7 +19,7 @@ type Router interface {
 
 type RouteTerminal interface {
 	Router
-	HandleRequest(res http.ResponseWriter, req *http.Request, vars map[string]interface{})
+	HandleRequest(res Responder, req *http.Request, vars map[string]interface{})
 }
 
 type RouteBranch interface {
