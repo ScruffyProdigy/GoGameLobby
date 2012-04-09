@@ -2,7 +2,6 @@ package templater
 
 import (
 	"../log"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -12,8 +11,12 @@ import (
 
 var t *template.Template
 
-func Get(tmpl string) *template.Template {
-	return t.Lookup(tmpl)
+func Get(tmpl string) (result *template.Template) {
+	result = t.Lookup(tmpl)
+	if result == nil {
+		panic("Unable to find template \"" + tmpl + "\"")
+	}
+	return
 }
 
 func LoadTemplates(dir string) {

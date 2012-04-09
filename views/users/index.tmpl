@@ -1,7 +1,7 @@
 <h1>Users</h1>
 <ul>
-	{{range .users}}
-	<a href='users/{{.GamerTag}}'><li>{{.GamerTag}}</li></a>
+	{{range .Users}}
+	<a href='/users/{{.ClashTag}}'><li>{{.ClashTag}}</li></a>
 	{{else}}
 	<li>No Current Users</li>
 	{{end}}

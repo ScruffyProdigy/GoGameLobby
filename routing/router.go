@@ -49,7 +49,7 @@ func RouteWare(root RouteBranch) rack.Middleware {
 }
 
 func RenderWare(w http.ResponseWriter, r *http.Request, vars map[string]interface{}, next rack.NextFunc) {
-	layout, castable := vars["layout"].(string)
+	layout, castable := vars["Layout"].(string)
 	if !castable {
 		log.Warning("\nWarning: Couldn't find Layout - Using \"base\"")
 		layout = "base"

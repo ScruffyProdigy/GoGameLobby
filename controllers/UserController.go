@@ -6,15 +6,16 @@ import (
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 	"net/http"
+	"strconv"
 )
 
 type User struct {
-	GamerTag string
+	ClashTag string
 	Points   int
 }
 
 func (this User) Url() []string {
-	return []string{"users", this.GamerTag}
+	return []string{"users", this.ClashTag}
 }
 
 func init() {
@@ -29,7 +30,7 @@ func init() {
 	var indexer = func(s string) interface{} {
 		var result User
 
-		query := bson.M{"gamertag": s}
+		query := bson.M{"clashtag": s}
 
 		err = collection.Find(query).One(&result)
 		if err != nil {
@@ -48,21 +49,46 @@ func init() {
 				panic(err)
 			}
 
-			vars["users"] = users
-			vars["title"] = "Users"
-			vars["layout"] = "base"
+			vars["Users"] = users
+			vars["Title"] = "Users"
+			vars["Layout"] = "base"
 
 			res.Render("users/index")
 		},
 		"show": func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
-			user := vars["user"].(User)
-			vars["title"] = user.GamerTag
-			vars["layout"] = "base"
+			user := vars["User"].(User)
+			vars["Title"] = user.ClashTag
+			vars["Layout"] = "base"
 			res.Render("users/show")
+		},
+		"new": func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
+			vars["Title"] = "New User"
+			vars["Layout"] = "base"
+			res.Render("users/new")
+		},
+		"create": func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
+			err := req.ParseForm()
+			if err != nil {
+				panic(err)
+			}
+
+			var user User
+			user.ClashTag = req.FormValue("User[ClashTag]")
+			user.Points, err = strconv.Atoi(req.FormValue("User[Points]"))
+			if err != nil {
+				panic(err)
+			}
+
+			err = collection.Insert(&user)
+			if err != nil {
+				panic(err)
+			}
+
+			res.RedirectTo(user)
 		},
 	}
 
-	userResource := routes.Resource("users", rest, "user", indexer)
+	userResource := routes.Resource("users", rest, "User", indexer)
 	userResource.Collection.AddRoute(routes.Get("foo", func(res routes.Responder, req *http.Request, vars map[string]interface{}) {
 		user := User{"Foo", 1}
 		err := collection.Insert(&user)

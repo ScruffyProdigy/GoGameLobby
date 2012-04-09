@@ -23,6 +23,10 @@ type Urler interface {
 	Url() []string
 }
 
+func GetUrl(this Urler) string {
+	return "/" + strings.Join(this.Url(), "/")
+}
+
 func createResponder(w http.ResponseWriter, vars map[string]interface{}) *responder {
 	r := new(responder)
 	r.w = w
@@ -31,7 +35,7 @@ func createResponder(w http.ResponseWriter, vars map[string]interface{}) *respon
 }
 
 func (this *responder) RedirectWithCode(code int, redirecttome Urler) {
-	url := "/" + strings.Join(redirecttome.Url(), "/")
+	url := GetUrl(redirecttome)
 	this.w.Header().Add("Location", url)
 	this.w.WriteHeader(code)
 	fmt.Fprint(this.w, "You are being redirected to ", url)
