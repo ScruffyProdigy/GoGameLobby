@@ -14,8 +14,8 @@ type User struct {
 	Points   int
 }
 
-func (this User) Url() []string {
-	return []string{"users", this.ClashTag}
+func (this User) Url() string {
+	return "/users/"+this.ClashTag
 }
 
 func init() {
