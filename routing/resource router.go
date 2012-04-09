@@ -1,7 +1,5 @@
 package routes
 
-import "fmt"
-import "../log"
 import "net/http"
 
 type memberRouter struct {
@@ -46,19 +44,13 @@ type ResourceRouter struct {
 }
 
 func (this *ResourceRouter) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
-	log.Info("\nResource Routing!")
-
-	fmt.Fprint(log.DebugLog(), "\nComparing \"", section, "\" with \"", this.name, "\"")
 	if this.name == section {
-		log.Debug("yup!")
 		return this.collectionfuncs.Route(section, req, vars)
 	}
-	log.Debug("nope!")
 	return route_elsewhere
 }
 
 func (this *ResourceRouter) GetSubroutes(out chan<- Router) {
-	log.Debug("Getting Subroutes")
 	this.Collection.GetSubroutes(out)
 }
 
@@ -80,7 +72,6 @@ func Resource(name string, restfuncs map[string]HandlerFunc, variablename string
 
 	function = restfuncs["index"]
 	if function != nil {
-		log.Debug("Adding an index route")
 		resource.Collection.AddRoute(Get("/", function))
 	}
 

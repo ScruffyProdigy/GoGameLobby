@@ -50,7 +50,7 @@ func (this *responder) RenderWithCode(code int, tmpl string) {
 	var body bytes
 	t := templater.Get(tmpl)
 	t.Execute(&body, this.vars)
-	this.vars["body"] = (string)(body)
+	this.vars["Body"] = (string)(body)
 }
 
 type bytes []byte

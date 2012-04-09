@@ -5,12 +5,14 @@ import (
 	"../rack"
 	"../templater"
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
 func RouteWare(root RouteBranch) rack.Middleware {
 	return func(w http.ResponseWriter, r *http.Request, vars map[string]interface{}, next rack.NextFunc) {
-		//		defer handleErrors(w)
+		//		defer handleErrors(w)	//in production we want this so that the user will get a 500 screen letting them know something went wrong
+		//in development, we get more information if we just let it crash
 
 		parsedRoute := vars["parsedRoute"].([]string)
 		currentRoute := root
@@ -49,25 +51,26 @@ func RouteWare(root RouteBranch) rack.Middleware {
 func RenderWare(w http.ResponseWriter, r *http.Request, vars map[string]interface{}, next rack.NextFunc) {
 	layout, castable := vars["layout"].(string)
 	if !castable {
-		log.Debug("\nCouldn't find Layout")
+		log.Warning("\nWarning: Couldn't find Layout - Using \"base\"")
 		layout = "base"
 	}
 
-	_, castable = vars["body"].(string)
+	_, castable = vars["Body"].(string)
 	if !castable {
-		log.Debug("\nCouldn't find Body")
-		vars["body"] = ""
+		log.Warning("\nWarning:Couldn't find Body - Using \"\"")
+		vars["Body"] = ""
 	}
+	vars["Body"] = template.HTML(vars["Body"].(string))
 
-	log.Debug("\nLayout: " + layout)
-	log.Debug("\nTesting!")
 	L := templater.Get("layouts/" + layout)
-	fmt.Fprint(log.DebugLog(), "\nResult:", L)
 	if L == nil {
-		log.Debug("\nNot Found - printing body separate")
-		fmt.Fprint(w, vars["body"].(string))
+		log.Error("\nError: Layout Not Found - Printing body as is")
+		//*///	** Start of Code Switch - One slash before the start uses second set of code, two slashes uses first set of code
+		fmt.Fprint(w, vars["Body"].(string))
+		/*/// ** Middle of Code Switch	
+				panic("Layout Not Found")
+		/**/ //	** End of Code Switch
 	} else {
-		log.Debug("\nFound - rendering template")
 		L.Execute(w, vars)
 	}
 }

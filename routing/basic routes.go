@@ -1,7 +1,5 @@
 package routes
 
-import "fmt"
-import "../log"
 import "net/http"
 
 type basicRoute struct {
@@ -11,8 +9,6 @@ type basicRoute struct {
 }
 
 func (this *basicRoute) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
-	fmt.Fprint(log.DebugLog(), "\nComparing \"", section, "\" with \"", this.name, "\"")
-	fmt.Fprint(log.DebugLog(), "\nComparing \"", req.Method, "\" with \"", this.method, "\"")
 	if section == this.name && req.Method == this.method {
 		return route_here
 	}

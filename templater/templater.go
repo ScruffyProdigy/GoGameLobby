@@ -2,14 +2,15 @@ package templater
 
 import (
 	"../log"
+	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 )
 
-var t template.Template
+var t *template.Template
 
 func Get(tmpl string) *template.Template {
 	return t.Lookup(tmpl)
@@ -17,7 +18,8 @@ func Get(tmpl string) *template.Template {
 
 func LoadTemplates(dir string) {
 	base := filepath.Clean(dir)
-	log.Debug("\nBase:" + base)
+	t = template.New("")
+	t.Parse("")
 
 	filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -28,16 +30,12 @@ func LoadTemplates(dir string) {
 			return nil
 		}
 
-		log.Debug("\n\nPath:" + path)
-
 		ext := strings.TrimLeft(filepath.Ext(info.Name()), ".")
-		log.Debug("\nExt:" + ext)
 
 		file, err := filepath.Rel(base, path)
 		if err != nil {
 			panic(err)
 		}
-		log.Debug("\nFile:" + file)
 
 		index := strings.Index(file, ".")
 		if index == -1 {
@@ -45,7 +43,6 @@ func LoadTemplates(dir string) {
 			return nil
 		}
 		name := file[0:index]
-		log.Debug("\nName:" + name)
 
 		switch ext {
 		case "tmpl":
@@ -55,9 +52,9 @@ func LoadTemplates(dir string) {
 				panic(err)
 			}
 			s := string(b)
-			log.Debug("\n Parsing this file:" + s)
-			t.New(name).Parse(s)
-			log.Debug("\nDone Parsing!")
+			a := t.New(name)
+			fmt.Fprint(log.DebugLog(), "\n going to store it in: ", a)
+			a.Parse(s)
 		default:
 			log.Warning("\nWarning: Unknown Template Type: ." + ext)
 		}
