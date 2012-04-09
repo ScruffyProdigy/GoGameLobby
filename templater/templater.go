@@ -53,7 +53,6 @@ func LoadTemplates(dir string) {
 			}
 			s := string(b)
 			a := t.New(name)
-			fmt.Fprint(log.DebugLog(), "\n going to store it in: ", a)
 			a.Parse(s)
 		default:
 			log.Warning("\nWarning: Unknown Template Type: ." + ext)
