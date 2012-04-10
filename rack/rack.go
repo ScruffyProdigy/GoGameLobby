@@ -1,10 +1,12 @@
 package rack
 
-import "net/http"
+import (
+	"net/http"
+)
 
-type NextFunc func()
+type NextFunc func() (int, http.Header, []byte)
 
-type Middleware func(http.ResponseWriter, *http.Request, map[string]interface{}, NextFunc)
+type Middleware func(*http.Request, map[string]interface{}, NextFunc) (int, http.Header, []byte)
 
 type Interface interface {
 	Add(Middleware)
@@ -16,19 +18,7 @@ type implementation struct {
 }
 
 func (this *implementation) Add(middle Middleware) {
-	if cap(this.middleware) == 0 {
-		this.middleware = make([]Middleware, 0, 8)
-	}
-
-	n := len(this.middleware)
-	for n+1 >= cap(this.middleware) {
-		newmiddleware := make([]Middleware, n, 2*n)
-		copy(newmiddleware, this.middleware)
-		this.middleware = newmiddleware
-	}
-
-	this.middleware = this.middleware[0 : n+1]
-	this.middleware[n] = middle
+	this.middleware = append(this.middleware, middle)
 }
 
 func (this *implementation) Go(conn Connection) {
@@ -36,14 +26,23 @@ func (this *implementation) Go(conn Connection) {
 		vars := make(map[string]interface{})
 		index := -1
 		var next NextFunc
-		next = func() {
+		next = func() (int, http.Header, []byte) {
 			index++
 			if index >= len(this.middleware) {
-				return
+				return BlankResponse().Results()
 			}
-			this.middleware[index](w, r, vars, next)
+			return this.middleware[index](r, vars, next)
 		}
-		next()
+
+		//this is the result of all of the middleware
+		//so, write it out to the response writer
+		status, headers, message := next()
+		for k, _ := range headers {
+			w.Header().Set(k, headers.Get(k))
+		}
+		w.WriteHeader(status)
+		w.Write(message)
+
 	})
 }
 

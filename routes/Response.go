@@ -46,10 +46,8 @@ func (this *responder) Render(tmpl string) {
 
 func (this *responder) RenderWithCode(code int, tmpl string) {
 	this.w.WriteHeader(code)
-	var body bytes
 	t := templater.Get(tmpl)
-	t.Execute(&body, this.vars)
-	this.vars["Body"] = (string)(body)
+	t.Execute(this.w, this.vars)
 }
 
 type bytes []byte

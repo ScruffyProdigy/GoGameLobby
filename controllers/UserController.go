@@ -2,7 +2,7 @@ package controller
 
 import (
 	"../log"
-	"../routing"
+	"../routes"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 	"net/http"
@@ -15,13 +15,13 @@ type User struct {
 }
 
 func (this User) Url() string {
-	return "/users/"+this.ClashTag
+	return "/users/" + this.ClashTag
 }
 
 func init() {
 	session, err := mgo.Dial("localhost")
 	if err != nil {
-		log.Error("\nError - Please Launch Mongo before running this\n")
+		log.Fatal("Please Launch Mongo before running this\n")
 		panic(err)
 	}
 

@@ -1,9 +1,12 @@
-package rack
+package middleware
 
-import "net/http"
-import "strings"
+import (
+	"../rack"
+	"net/http"
+	"strings"
+)
 
-func Parser(w http.ResponseWriter, r *http.Request, vars map[string]interface{}, next NextFunc) {
+func Parser(r *http.Request, vars map[string]interface{}, next rack.NextFunc) (int, http.Header, []byte) {
 	parsedRoute := strings.Split(r.URL.Path, "/")
 	newParsedRoute := make([]string, 0, len(parsedRoute)+1)
 	for _, section := range parsedRoute {
@@ -19,5 +22,5 @@ func Parser(w http.ResponseWriter, r *http.Request, vars map[string]interface{},
 
 	vars["parsedRoute"] = newParsedRoute
 
-	next()
+	return next()
 }

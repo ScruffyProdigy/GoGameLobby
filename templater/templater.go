@@ -42,7 +42,7 @@ func LoadTemplates(dir string) {
 
 		index := strings.Index(file, ".")
 		if index == -1 {
-			log.Warning("\nWarning: No file type in " + file)
+			log.Warning("No file type in " + file)
 			return nil
 		}
 		name := file[0:index]
@@ -51,14 +51,14 @@ func LoadTemplates(dir string) {
 		case "tmpl":
 			b, err := ioutil.ReadFile(path)
 			if err != nil {
-				log.Error("\nError: could not load template file:" + path)
-				panic(err)
+				log.Error("Could not load template file:" + path + " - Skipping")
+				return nil
 			}
 			s := string(b)
 			a := t.New(name)
 			a.Parse(s)
 		default:
-			log.Warning("\nWarning: Unknown Template Type: ." + ext)
+			log.Warning("Unknown Template Type: ." + ext)
 		}
 
 		return nil

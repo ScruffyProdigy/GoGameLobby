@@ -1,14 +1,22 @@
 package main
 
-import _ "./controllers"
-import "./routing"
-import "./rack"
-import "./templater"
+import (
+	_ "./controllers"
+	"./middleware"
+	"./rack"
+	"./routes"
+	"./session"
+	"./templater"
+)
 
 func main() {
 	templater.LoadTemplates("./views")
-	rack.Up.Add(rack.Parser)
-	rack.Up.Add(routes.RouteWare(routes.Root))
-	rack.Up.Add(routes.RenderWare)
+
+	rack.Up.Add(middleware.Parser)
+	rack.Up.Add(middleware.AddLayout)
+	rack.Up.Add(middleware.SetErrorLayout)
+	rack.Up.Add(session.Middleware)
+	rack.Up.Add(routes.RouterWare(routes.Root))
+
 	rack.Up.Go(rack.HttpConnection(":3000"))
 }

@@ -1,6 +1,6 @@
 package controller
 
-import "../routing"
+import "../routes"
 import "net/http"
 
 func init() {

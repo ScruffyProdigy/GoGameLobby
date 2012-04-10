@@ -42,7 +42,7 @@ func logger(level int) io.Writer {
 }
 
 func Debug(message string) {
-	log(message, Log_Level_Debug)
+	log("\nDebug: "+message, Log_Level_Debug)
 }
 
 func DebugLog() io.Writer {
@@ -50,7 +50,7 @@ func DebugLog() io.Writer {
 }
 
 func Info(message string) {
-	log(message, Log_Level_Info)
+	log("\nInfo: "+message, Log_Level_Info)
 }
 
 func InfoLog() io.Writer {
@@ -58,7 +58,7 @@ func InfoLog() io.Writer {
 }
 
 func Warning(message string) {
-	log(message, Log_Level_Warning)
+	log("\nWarning: "+message, Log_Level_Warning)
 }
 
 func WarningLog() io.Writer {
@@ -66,7 +66,7 @@ func WarningLog() io.Writer {
 }
 
 func Error(message string) {
-	log(message, Log_Level_Error)
+	log("\nError: "+message, Log_Level_Error)
 }
 
 func ErrorLog() io.Writer {
@@ -74,7 +74,7 @@ func ErrorLog() io.Writer {
 }
 
 func Fatal(message string) {
-	log(message, Log_Level_Fatal)
+	log("\nFatal: "+message, Log_Level_Fatal)
 }
 
 func FatalLog() io.Writer {
@@ -82,7 +82,7 @@ func FatalLog() io.Writer {
 }
 
 func Unknown(message string) {
-	log(message, Log_Level_Unknown)
+	log("\nUnknown: "+message, Log_Level_Unknown)
 }
 
 func UnknownLog() io.Writer {
