@@ -26,6 +26,7 @@ func RouterWare(root RouteBranch) rack.Middleware {
 
 		w := rack.BlankResponse()
 		w2 := createResponder(w, vars)
+		status, header, message = w.Results()
 
 		//in production we want this so that the user will get a 500 screen letting them know something went wrong
 		//in development, we get more information if we just let it crash
