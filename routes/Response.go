@@ -6,11 +6,15 @@ import (
 	"net/http"
 )
 
+/*
+	Typically the controller would rather not worry about the presentation details
+	The Responder encapsulates this, and just provides the interface that controllers will want to deal with
+*/
 type Responder interface {
-	RedirectTo(redirecttome Urler)
-	Render(template string)
-	RedirectWithCode(code int, redirecttome Urler)
-	RenderWithCode(code int, template string)
+	Render(template string)                        // Render will render a template to the user using a status of http.StatusOK
+	RedirectTo(redirecttome Urler)                 //RedirectTo will send a redirect message back to the user using a status of http.StatusFound
+	RenderWithCode(code int, template string)      // RenderWithCode is like Render, except you can use any HTTPStatus code
+	RedirectWithCode(code int, redirecttome Urler) //RedirectWithCode is like RedirectTo, except you can use any HTTPStatus code
 }
 
 type responder struct {
@@ -18,6 +22,10 @@ type responder struct {
 	vars map[string]interface{}
 }
 
+/*
+	When we redirect, we need to know where to redirect to; 
+	an Urler is something that has a Url() method that we can use to get the URL we need to redirect to
+*/
 type Urler interface {
 	Url() string
 }
@@ -48,14 +56,4 @@ func (this *responder) RenderWithCode(code int, tmpl string) {
 	this.w.WriteHeader(code)
 	t := templater.Get(tmpl)
 	t.Execute(this.w, this.vars)
-}
-
-type bytes []byte
-
-func (this *bytes) Write(p []byte) (n int, err error) {
-	for _, c := range p {
-		*this = append(*this, c)
-		n++
-	}
-	return
 }

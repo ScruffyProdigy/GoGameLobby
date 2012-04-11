@@ -33,14 +33,18 @@ func newMemberRouter(variablename string, getter func(string) interface{}, resou
 	return this
 }
 
+/*
+a ResourceRouter assumes that it represents a RESTful resource, and will process it as such
+it also allows you to add non-RESTful member and collection routes by exposing a route branch for each
+*/
 type ResourceRouter struct {
 	name            string
 	collectionfuncs *routeList
 	memberfuncs     *routeList
 
 	//public
-	Collection RouteBranch
-	Member     RouteBranch
+	Collection RouteBranch //you can add non-RESTful collection-level routes here
+	Member     RouteBranch //you can add non-RESTful member-level routes here
 }
 
 func (this *ResourceRouter) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
@@ -58,6 +62,15 @@ func (this *ResourceRouter) AddRoute(router Router) {
 	this.Collection.AddRoute(router)
 }
 
+/*
+	Resource will return a RESTful Resource Router
+	it expects
+	name: a string that represents the name of the resource.  This is used in the routing process
+	restfuncs: the RESTful routes that this resource expects to handle
+		the usable keys in the map are: "index","new","create","show","edit","update", and "delete"
+	variablename: If we are drilling down into a member of the resource, we will add a variable to the rack variables, and this will be the name that it will set
+	getter:	if we need to get a member resource, you'll have to help us;  we'll give you the string representing the ID, you give us the resource
+*/
 func Resource(name string, restfuncs map[string]HandlerFunc, variablename string, getter func(index string) interface{}) *ResourceRouter {
 	resource := new(ResourceRouter)
 	resource.name = name

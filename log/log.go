@@ -1,9 +1,19 @@
+/*
+	Log is a simple logging system I'm using to help figure out when & where things are going wrong
+
+	It allows you to specify a Logging Level, and if an attempt to write to the log at a lower log level than specified is attempted, then nothing happens instead
+*/
 package log
 
 import "os"
 import "io"
 import "fmt"
 
+/*
+	Logging levels are, in order: Debug, Info, Warning, Error, Fatal, Unknown
+	each has a corresponding function, which acts as a Print to the default output
+	and each also has a Log function, which returns the default output if it is valid, and a fake output if invalid
+*/
 const (
 	Log_Level_Debug = iota
 	Log_Level_Info
@@ -15,15 +25,18 @@ const (
 
 var loggerLevel = Log_Level_Debug
 
-type DummyLogger struct {
+type dummyLogger struct {
 }
 
-func (DummyLogger) Write(p []byte) (n int, err error) {
+func (dummyLogger) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-var dummy DummyLogger
+var dummy dummyLogger
 
+/*
+	SetLogLevel will set the log level.  Any further attempts to write at a lower level will fail
+*/
 func SetLogLevel(level int) {
 	loggerLevel = level
 }

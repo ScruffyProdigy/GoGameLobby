@@ -1,3 +1,6 @@
+/*
+	session wraps gorilla sessions within a Rack Middleware framework
+*/
 package session
 
 import (
@@ -7,9 +10,13 @@ import (
 
 var store = sessions.NewCookieStore([]byte("Go Game Lobby!"))
 
+/*
+	The Session is the interface exposed to the rest of the program
+*/
 type Session interface {
-	Set(k, v interface{})
-	Get(k interface{}) interface{}
+	Set(k, v interface{})          // Set will set a session variable
+	Get(k interface{}) interface{} //Get will obtain the result of a session variable
+	Clear(k interface{})           //Clear will get rid of a session variable
 }
 
 type session struct {
@@ -23,6 +30,10 @@ func (this *session) Set(k, v interface{}) {
 
 func (this *session) Get(k interface{}) interface{} {
 	return this.sess.Values[k]
+}
+
+func (this *session) Clear(k interface{}) {
+	delete(this.sess.Values, k)
 }
 
 func (this *session) save(w http.ResponseWriter) {

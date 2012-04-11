@@ -11,6 +11,9 @@ import (
 
 var t *template.Template
 
+/*
+	Get() will get a specified template from the previously loaded templates
+*/
 func Get(tmpl string) (result *template.Template) {
 	result = t.Lookup(tmpl)
 	if result == nil {
@@ -19,10 +22,19 @@ func Get(tmpl string) (result *template.Template) {
 	return
 }
 
+func Available(tmpl string) bool {
+	result := t.Lookup(tmpl)
+	if result == nil {
+		return false
+	}
+	return true
+}
+
+/*
+	LoadTemplates() loads all of the templates within a specified directory
+*/
 func LoadTemplates(dir string) {
 	base := filepath.Clean(dir)
-	t = template.New("")
-	t.Parse("")
 
 	filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -63,4 +75,9 @@ func LoadTemplates(dir string) {
 
 		return nil
 	})
+}
+
+func init() {
+	t = template.New("")
+	t.Parse("")
 }

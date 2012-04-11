@@ -27,18 +27,22 @@ func newBasicRoute(method, name string, handler HandlerFunc) RouteTerminal {
 	return route
 }
 
+//Get provides a RouteTerminal that will direct a GET request to a specified handler
 func Get(name string, handler HandlerFunc) RouteTerminal {
 	return newBasicRoute("GET", name, handler)
 }
 
+//Post provides a RouteTermianl that will direct a POST request to a specified handler
 func Post(name string, handler HandlerFunc) RouteTerminal {
 	return newBasicRoute("POST", name, handler)
 }
 
+//Put provides a RouteTerminal that will direct a PUT request to a specified handler
 func Put(name string, handler HandlerFunc) RouteTerminal {
 	return newBasicRoute("PUT", name, handler)
 }
 
+//Delete provides a RouteTerminal that will direct a DELETE request to specified handler
 func Delete(name string, handler HandlerFunc) RouteTerminal {
 	return newBasicRoute("DELETE", name, handler)
 }

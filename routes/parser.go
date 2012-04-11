@@ -1,4 +1,4 @@
-package middleware
+package routes
 
 import (
 	"../rack"
