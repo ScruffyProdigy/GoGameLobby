@@ -11,18 +11,6 @@ import (
 	"net/http"
 )
 
-func getErrorString(rec interface{}) string {
-	err, isError := rec.(error)
-	str, isString := rec.(string)
-
-	if isError {
-		return err.Error()
-	} else if isString {
-		return str
-	}
-	return "Unknown Error"
-}
-
 /*
 	RouterWare is the function that will create a basic router
 	It requires that Parser is run before it
@@ -33,21 +21,6 @@ func RouterWare(root RouteBranch) rack.Middleware {
 
 		w := rack.BlankResponse()
 		w2 := createResponder(w, vars)
-		status, header, message = w.Results()
-
-		//in production we want this so that the user will get a 500 screen letting them know something went wrong
-		//in development, we get more information if we just let it crash
-		defer func() {
-			/*
-						rec := recover()
-			/*/
-			var rec interface{} = nil
-			/**/
-			if rec != nil {
-				status = http.StatusInternalServerError
-				message = []byte(getErrorString(rec))
-			}
-		}()
 
 		parsedRoute := vars["parsedRoute"].([]string)
 		if parsedRoute == nil {
@@ -72,14 +45,12 @@ func RouterWare(root RouteBranch) rack.Middleware {
 					break
 				case route_here:
 					subroute.(RouteTerminal).HandleRequest(w2, r, vars)
-					next()
 					return w.Results()
 				}
 			}
-			//if we can't find what we're looking for, render a 404 page
+			//if we can't find what we're looking for, perhaps the next Middleware will be able to
 			if !found {
-				status = http.StatusNotFound
-				return
+				return next()
 			}
 		}
 		log.Unknown("False Exit in RouterWare")
