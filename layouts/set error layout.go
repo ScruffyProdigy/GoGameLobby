@@ -2,8 +2,8 @@ package layouts
 
 import (
 	"../rack"
-	"net/http"
 	"../templater"
+	"net/http"
 	"strconv"
 )
 
@@ -14,17 +14,17 @@ import (
 	if it is not found, it sets it to a more general layout (if found) such as 40x, or 50x
 */
 func Statuser(layoutstr, folder string) rack.Middleware {
-	return func(r *http.Request, vars map[string]interface{}, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 		status, header, message = next()
 
 		layout := strconv.Itoa(status)
-		if templater.Available(folder+layout) {
+		if templater.Available(folder + layout) {
 			vars[layoutstr] = layout
 			return
 		}
 
 		layout = strconv.Itoa(status/100) + "0x"
-		if templater.Available(folder+layout) {
+		if templater.Available(folder + layout) {
 			vars[layoutstr] = layout
 			return
 		}

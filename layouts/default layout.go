@@ -10,8 +10,8 @@ import (
 	we will use it to set a default layout in main.go
 */
 
-func Defaulter(key string,value interface{}) rack.Middleware {
-	return func(r *http.Request, vars map[string]interface{}, next rack.NextFunc) (status int, header http.Header, message []byte) {
+func Defaulter(key string, value interface{}) rack.Middleware {
+	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 		vars[key] = value
 		return next()
 	}

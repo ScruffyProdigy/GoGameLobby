@@ -22,7 +22,7 @@ type NextFunc func() (int, http.Header, []byte)
 
 //Middleware is a function that takes an HTTP request, a map of variables, and a function call to get the next Middleware
 //it is expected to return an HTTP status code, a map of headers, and the resulting HTML
-type Middleware func(req *http.Request, vars map[string]interface{}, next NextFunc) (status int, header http.Header, message []byte)
+type Middleware func(req *http.Request, vars Vars, next NextFunc) (status int, header http.Header, message []byte)
 
 //the Rack stores all of the Middleware
 type Rack interface {
@@ -40,7 +40,7 @@ func (this *rack) Add(middle Middleware) {
 
 func (this *rack) Go(conn Connection) {
 	conn.Go(func(w http.ResponseWriter, r *http.Request) {
-		vars := make(map[string]interface{})
+		vars := make(Vars)
 		index := -1
 		var next NextFunc
 		next = func() (int, http.Header, []byte) {
@@ -48,6 +48,9 @@ func (this *rack) Go(conn Connection) {
 			if index >= len(this.middleware) {
 				return BlankResponse().Results()
 			}
+			//			s,h,m := this.middleware[index](r, vars, next)
+			//			fmt.Fprint(log.DebugLog(),"\n Debug - Passing Down: ",s,h,",and ",len(m)," bytes")
+			//			return s,h,m
 			return this.middleware[index](r, vars, next)
 		}
 

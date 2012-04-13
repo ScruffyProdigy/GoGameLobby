@@ -2,9 +2,9 @@ package layouts
 
 import (
 	"../rack"
-	"net/http"
 	"../templater"
 	"html/template"
+	"net/http"
 )
 
 /*
@@ -13,12 +13,12 @@ import (
 */
 
 func Encapsulator(layoutstr string, bodystr string, folder string) rack.Middleware {
-	return func(r *http.Request, vars map[string]interface{}, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 		status, header, body := next()
 
 		layout, castable := vars[layoutstr].(string)
 		if !castable {
-			panic("Couldn't find " + layoutstr + " variable")
+			return
 		}
 
 		vars[bodystr] = template.HTML(body)

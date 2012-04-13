@@ -14,9 +14,9 @@ var store = sessions.NewCookieStore([]byte("Go Game Lobby!"))
 	The Session is the interface exposed to the rest of the program
 */
 type Session interface {
-	Set(k, v interface{})          // Set will set a session variable
-	Get(k interface{}) interface{} //Get will obtain the result of a session variable
-	Clear(k interface{})           //Clear will get rid of a session variable
+	Set(k, v interface{})            // Set will set a session variable
+	Get(k interface{}) interface{}   //Get will obtain the result of a session variable
+	Clear(k interface{}) interface{} //Clear will obstain the result of a session variable, and then delete it from the session value
 }
 
 type session struct {
@@ -32,12 +32,17 @@ func (this *session) Get(k interface{}) interface{} {
 	return this.sess.Values[k]
 }
 
-func (this *session) Clear(k interface{}) {
+func (this *session) Clear(k interface{}) (result interface{}) {
+	result = this.sess.Values[k]
 	delete(this.sess.Values, k)
+	return
 }
 
 func (this *session) save(w http.ResponseWriter) {
-	this.sess.Save(this.r, w)
+	err := this.sess.Save(this.r, w)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func get(r *http.Request) *session {

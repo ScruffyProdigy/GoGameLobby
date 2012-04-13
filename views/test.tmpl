@@ -3,6 +3,11 @@
 		<title>{{.Title}}</title>
 	</head>
 	<body>
-		Test Page!
+		<h1>Test Page!</h1>
+		<ul>
+		{{range .flashes}}
+		<li>{{.}}</li>
+		{{end}}
+		</ul>
 	</body>
 </html>

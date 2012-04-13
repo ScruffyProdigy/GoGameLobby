@@ -1,8 +1,8 @@
 package routes
 
 import (
+	"../rack"
 	"../templater"
-	"fmt"
 	"net/http"
 )
 
@@ -19,7 +19,7 @@ type Responder interface {
 
 type responder struct {
 	w    http.ResponseWriter
-	vars map[string]interface{}
+	vars rack.Vars
 }
 
 /*
@@ -30,7 +30,13 @@ type Urler interface {
 	Url() string
 }
 
-func createResponder(w http.ResponseWriter, vars map[string]interface{}) *responder {
+type Url string
+
+func (this Url) Url() string {
+	return string(this)
+}
+
+func createResponder(w http.ResponseWriter, vars rack.Vars) *responder {
 	r := new(responder)
 	r.w = w
 	r.vars = vars
@@ -39,9 +45,9 @@ func createResponder(w http.ResponseWriter, vars map[string]interface{}) *respon
 
 func (this *responder) RedirectWithCode(code int, redirecttome Urler) {
 	url := redirecttome.Url()
+
 	this.w.Header().Add("Location", url)
 	this.w.WriteHeader(code)
-	fmt.Fprint(this.w, "You are being redirected to ", url)
 }
 
 func (this *responder) RedirectTo(redirectome Urler) {

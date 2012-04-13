@@ -17,7 +17,7 @@ import (
 	Send RouterWare the root to your directory structure, and RouterWare will direct it to the correct Controller
 */
 func RouterWare(root RouteBranch) rack.Middleware {
-	return func(r *http.Request, vars map[string]interface{}, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 
 		w := rack.BlankResponse()
 		w2 := createResponder(w, vars)

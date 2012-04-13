@@ -4,5 +4,10 @@
 	<input id="user_clashtag" name="User[ClashTag]" size="30" type="text" /><br />
 	<label for="user_points">Points:</label>
 	<input id="user_points" name="User[Points]" size="30" type="number">
+	<input id="authorization_type" name="User[Authorization][Type]" value="{{.authorization}}" type="hidden">
+	<input id="authorization_id" name="User[Authorization][ID]" value="{{.auth_id}}" type="hidden">
+	<input id="authorization_access" name="User[Authorization][Access]" value="{{.access}}" type="hidden">
+	<input id="authorization_type" name="User[Authorization][Refresh]" value="{{.refresh}}" type="hidden">
+	<input id="authorization_expiry" name="User[Authorization][Expiry]" value="{{.expiry}}" type="hidden">
 	<input name="commit" type="submit" value="Create User">
 </form>

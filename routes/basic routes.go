@@ -1,6 +1,9 @@
 package routes
 
-import "net/http"
+import (
+	"../rack"
+	"net/http"
+)
 
 type basicRoute struct {
 	method  string
@@ -8,14 +11,14 @@ type basicRoute struct {
 	handler HandlerFunc
 }
 
-func (this *basicRoute) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
+func (this *basicRoute) Route(section string, req *http.Request, vars rack.Vars) int {
 	if section == this.name && req.Method == this.method {
 		return route_here
 	}
 	return route_elsewhere
 }
 
-func (this *basicRoute) HandleRequest(res Responder, req *http.Request, vars map[string]interface{}) {
+func (this *basicRoute) HandleRequest(res Responder, req *http.Request, vars rack.Vars) {
 	this.handler(res, req, vars)
 }
 

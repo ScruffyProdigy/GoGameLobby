@@ -1,6 +1,10 @@
 package routes
 
-import "net/http"
+import (
+	"../models"
+	"../rack"
+	"net/http"
+)
 
 type memberRouter struct {
 	variablename string
@@ -8,7 +12,7 @@ type memberRouter struct {
 	resource     RouteBranch
 }
 
-func (this *memberRouter) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
+func (this *memberRouter) Route(section string, req *http.Request, vars rack.Vars) int {
 	received := this.getter(section)
 	if received == nil {
 		return route_elsewhere
@@ -47,7 +51,7 @@ type ResourceRouter struct {
 	Member     RouteBranch //you can add non-RESTful member-level routes here
 }
 
-func (this *ResourceRouter) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
+func (this *ResourceRouter) Route(section string, req *http.Request, vars rack.Vars) int {
 	if this.name == section {
 		return this.collectionfuncs.Route(section, req, vars)
 	}
@@ -71,15 +75,19 @@ func (this *ResourceRouter) AddRoute(router Router) {
 	variablename: If we are drilling down into a member of the resource, we will add a variable to the rack variables, and this will be the name that it will set
 	getter:	if we need to get a member resource, you'll have to help us;  we'll give you the string representing the ID, you give us the resource
 */
-func Resource(name string, restfuncs map[string]HandlerFunc, variablename string, getter func(index string) interface{}) *ResourceRouter {
+func Resource(m model.Collection, restfuncs map[string]HandlerFunc) *ResourceRouter {
 	resource := new(ResourceRouter)
-	resource.name = name
+	resource.name = m.RouteName()
 	resource.collectionfuncs = newRouteList()
 	resource.memberfuncs = newRouteList()
 	resource.Collection = resource.collectionfuncs
 	resource.Member = resource.memberfuncs
 
-	resource.Collection.AddRoute(newMemberRouter(variablename, getter, resource.Member))
+	var indexer = func(s string) interface{} {
+		return m.Indexer(s)
+	}
+
+	resource.Collection.AddRoute(newMemberRouter(m.VarName(), indexer, resource.Member))
 
 	var function HandlerFunc
 

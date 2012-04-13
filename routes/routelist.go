@@ -1,12 +1,15 @@
 package routes
 
-import "net/http"
+import (
+	"../rack"
+	"net/http"
+)
 
 type routeList struct {
 	routes []Router
 }
 
-func (this *routeList) Route(section string, req *http.Request, vars map[string]interface{}) RoutingStatus {
+func (this *routeList) Route(section string, req *http.Request, vars rack.Vars) int {
 	return route_continue
 }
 
