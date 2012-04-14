@@ -1,8 +1,16 @@
 <html>
 	<head>
-		<title>{{.Title}}</title>
+		<title>{{if .Title}}{{.Title}}{{else}}ClashCentral!{{end}}</title>
 	</head>
 	<body>
+		<nav class="login">
+			{{if .CurrentUser}}
+				Logged in as {{.CurrentUser.ClashTag}}
+				<a href="/logout/">Log out</a>
+			{{else}}
+				Log in through <a href="/facebook/login/">Facebook</a>
+			{{end}}
+		</nav>
 		{{.Body}}
 	</body>
 </html>
