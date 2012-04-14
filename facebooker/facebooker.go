@@ -110,26 +110,23 @@ func (this *facebooker) PostTokenCallback(r *http.Request, vars rack.Vars, tok *
 	return
 }
 
-type putUserIdHere struct {
-	Id string "id"
-}
-
 func (this *facebooker) GetUserID(tok *oauth.Token) (result int) {
 	oauther.GetSite(this, tok, "https://graph.facebook.com/me", func(res *http.Response) {
 		//use json to read in the result, and get 
-		var results map[string]interface{}
+		var uid struct {
+			ID string `json:"id"` //this is really the only field we care about, we don't really care where people work or any of that shit
+			//perhaps in the future, we will take in the age field or something, so we can get a better idea of who our demographics are and cater to them better
+			//but for now, we don't really give a fuck
+		}
 
 		d := json.NewDecoder(res.Body)
-		err := d.Decode(&results)
+		err := d.Decode(&uid)
 		if err != nil {
 			log.Error(err.Error())
 			panic(err)
 		}
 
-		r, isString := results["id"].(string)
-		if !isString {
-			panic("Facebook has experienced an error, please try logging in again")
-		}
+		r := uid.ID
 		result, err = strconv.Atoi(r)
 		if err != nil {
 			panic("ID is not a number")
