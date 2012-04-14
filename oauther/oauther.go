@@ -37,7 +37,8 @@ func GetToken(o Oauther) rack.Middleware {
 		state1 := r.FormValue("state")
 		state2 := vars.Apply(session.Clear("state"))
 		if state1 != state2 {
-			panic("states don't match!  Potential CSRF issue!")
+			//states don't match; potential CSRF attempt, we're just going to pass it on, and a 404 will probably be passed back (unless this happens to route somewhere else too)
+			return next()
 		}
 
 		code := r.FormValue("code")
