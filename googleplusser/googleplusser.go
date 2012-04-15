@@ -18,15 +18,15 @@ const (
 type Data struct {
 	// most of these variables should be straight up copied from https://code.google.com/apis/console/
 	// if you mess up any of these variables, you will get an error
-	ClientID     string // Application ID - supplied by Google
-	ClientSecret string // Application Secret - supplied by Google
-	SiteUrl      string // Site URL - you specify this to Google
-	RedirectUri  string //redirect URI - you specify this to Google (this is the part of the Redirect URI that is not also in the javascript origin)
-	Apikey       string //API Key - Google requires this along with an OAuth token - in the API console, use a server API key
+	ClientID     string `json:"client_id"`     // found in OAuth Client ID for Web Applications "Client ID"
+	ClientSecret string `json:"client_secret"` // found in OAuth Client ID for Web Applications "Client secret"
+	SiteUrl      string `json:"site_url"`      // found in OAuth Client ID for Web Applications "Redirect URIs" (the host of the specified URI)
+	RedirectUri  string `json:"redirect_uri"`  // found in OAuth Client ID for Web Applications "Redirect URIs" (the path of the specified URI)
+	Apikey       string `json:"api_key"`       // found in Simple API Access (Server Key) "API key"
 	// these variables are yours to decide
-	StartUri string
+	StartUri string `json:"start_uri"` // yours to decide, it is the path that you should direct the user to to log in
 	//	these variables are created by us
-	Permissions []string // Permissions - Currently there is only one option
+	Permissions []string `json:"permissions"` // what you want to do, options found above "UserPermission is recommended"
 
 }
 

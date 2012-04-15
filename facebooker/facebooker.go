@@ -16,15 +16,14 @@ import (
 const ()
 
 type Data struct {
-	// most of these variables should be straight up copied from developer.facebook.com
+	// most of these variables should be straight up copied from https://developers.facebook.com/apps
 	// if you mess up any of these variables, you will get an error
-	AppId       string   // Application ID - supplied by Facebook
-	AppSecret   string   // Application Secret - supplied by Facebook
-	SiteUrl     string   // Site URL - you specify this to Facebook
-	Permissions []string // Permissions - what you want to be able to do on facebook - see http://developers.facebook.com/docs/authentication/permissions/ for more details
-	// these variables are yours to decide
-	AuthUrl     string
-	RedirectUrl string
+	AppId       string   `json:"app_id"`       // on the dashboard - "App ID/API Key"
+	AppSecret   string   `json:"app_secret"`   // on the dashboard - "App Secret"
+	SiteUrl     string   `json:"site_url"`     // on the dashboard - "Site URL"
+	Permissions []string `json:"permissions"`  // see http://developers.facebook.com/docs/authentication/permissions/ for more details
+	StartUrl    string   `json:"start_url"`    // you decide - the route where the user should get start
+	RedirectUrl string   `json:"redirect_url"` // you decide - where facebook sends the user after they've been authenticated
 }
 
 type facebooker struct {
@@ -63,7 +62,7 @@ func (this *facebooker) GetConfig() *oauth.Config {
 }
 
 func (this *facebooker) GetStartUrl() string {
-	return "/" + this.data.AuthUrl
+	return "/" + this.data.StartUrl
 }
 
 func (this *facebooker) GetRedirectUrl() string {

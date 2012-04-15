@@ -18,7 +18,7 @@ type interceptor map[string]rack.Middleware
 
 func (this interceptor) Intercept(url string, exec rack.Middleware) {
 	if this[url] != nil {
-		log.Error("Interception already registered!")
+		log.Error("Interception '" + url + "' already registered!")
 		panic("Interception already registered!")
 	}
 	this[url] = exec
