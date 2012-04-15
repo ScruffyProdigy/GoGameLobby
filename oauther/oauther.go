@@ -49,10 +49,7 @@ func GetToken(o Oauther, U TokenHandler) rack.Middleware {
 		//Step 2: Exchange the code for the token
 		code := r.FormValue("code")
 		t := &oauth.Transport{oauth.Config: o.GetConfig()}
-		tok, err := t.Exchange(code)
-		if err != nil {
-			panic(err)
-		}
+		tok, _ := t.Exchange(code)
 
 		//Step 3: Have some other middleware handle whatever they're doing with the token (probably logging a user in)
 		process := U.HandleToken(o, tok)

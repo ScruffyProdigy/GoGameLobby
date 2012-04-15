@@ -24,12 +24,16 @@ var Logger Middlewarer
 
 func (Middlewarer) HandleToken(o oauther.Oauther, tok *oauth.Token) rack.Middleware {
 	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+		w := rack.BlankResponse()
+		if tok == nil {
+			vars.Apply(session.AddFlash("Log In Cancelled"))
+			http.Redirect(w, r, "/", http.StatusFound)
+			return w.Results()
+		}
 		a, canAuthorize := o.(Authorizer)
 		if !canAuthorize {
 			panic("oauth provider doesn't provide user information")
 		}
-
-		w := rack.BlankResponse()
 
 		authorization := a.GetName()
 		id := a.GetUserID(tok)
