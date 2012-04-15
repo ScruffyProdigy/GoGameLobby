@@ -9,6 +9,7 @@ import (
 	"./templater"
 	//	"./errorhandler"
 	"./facebooker"
+	"./googleplusser"
 	"./interceptor"
 	"./login"
 	"./notfound"
@@ -19,8 +20,23 @@ import (
 func main() {
 	i := interceptor.CreateInterceptor()
 
-	facebooker.SetConfiguration("115772051792384", "211481baf989b0ac6ab4345debab6d91", "http://localhost:3000/", "facebook/login/", "facebook/authorize/", []string{})
-	oauther.RegisterOauth(i, facebooker.Default)
+	facebooker.SetConfiguration(facebooker.Data{
+		AppId:       "115772051792384",
+		AppSecret:   "211481baf989b0ac6ab4345debab6d91",
+		SiteUrl:     "http://localhost:3000/",
+		AuthUrl:     "facebook/login/",
+		RedirectUrl: "facebook/authorize/",
+		Permissions: []string{}})
+	oauther.RegisterOauth(i, facebooker.Default, login.Logger)
+
+	googleplusser.SetConfiguration(googleplusser.Data{
+		ClientID:     "588791846385.apps.googleusercontent.com",
+		ClientSecret: "qrby3ReqJApabRfh-HBB1LWR",
+		SiteUrl:      "http://localhost:3000/",
+		StartUri:     "google/login/",
+		RedirectUri:  "google/authorize",
+		Permissions:  []string{googleplusser.UserPermission}})
+	oauther.RegisterOauth(i, googleplusser.Default, login.Logger)
 
 	login.RegisterLogout(i, "/logout/")
 

@@ -17,15 +17,16 @@ func init() {
 	model.RegisterModel(U)
 }
 
-type FacebookUserData struct {
-	Id    int
-	Token oauth.Token
+type AuthorizationData struct {
+	Authorization string
+	Id            string
+	Token         oauth.Token
 }
 
 type User struct {
-	ClashTag string
-	Points   int
-	Facebook []FacebookUserData
+	ClashTag       string
+	Points         int
+	Authorizations []AuthorizationData
 }
 
 func (this User) Url() string {
@@ -61,24 +62,10 @@ func (this *UserCollection) UserFromClashTag(s string) *User {
 	return &result
 }
 
-/*
-	var indexer = func(s string) interface{} {
-		var result User
-
-		query := bson.M{"clashtag": s}
-
-		err = collection.Find(query).One(&result)
-		if err != nil {
-			return nil
-		}
-
-		return result
-	}
-*/
-func (this *UserCollection) UserFromFacebookID(id int) *User {
+func (this *UserCollection) UserFromAuthorization(authorization, id string) *User {
 	var result User
 
-	query := bson.M{"facebook.id": id}
+	query := bson.M{"authorizations.authorization": authorization, "authorizations.id": id}
 
 	err := this.collection.Find(query).One(&result)
 	if err != nil {

@@ -8,7 +8,10 @@
 				Logged in as {{.CurrentUser.ClashTag}}
 				<a href="/logout/">Log out</a>
 			{{else}}
-				Log in through <a href="/facebook/login/">Facebook</a>
+				<ul>
+					<li>Log in through <a href="/facebook/login/">Facebook</a></li>
+					<li>Log in through <a href="/google/login/">Google</a></li>
+				</ul>
 			{{end}}
 		</nav>
 		{{.Body}}

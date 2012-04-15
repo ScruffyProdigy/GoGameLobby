@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"../login"
 	"../models/user"
 	"../rack"
 	"../routes"
@@ -65,27 +66,23 @@ func init() {
 				panic(err)
 			}
 
-			authorization := req.FormValue("User[Authorization][Type]")
-			switch authorization {
-			case "facebook":
-				var data user.FacebookUserData
-				data.Token.AccessToken = req.FormValue("User[Authorization][Access]")
-				data.Token.RefreshToken = req.FormValue("User[Authorization][Refresh]")
-				data.Token.Expiry, err = time.Parse(time.RFC1123, req.FormValue("User[Authorization][Expiry]"))
-				if err != nil {
-					panic("Can't Convert Expiry to Time")
-				}
-				data.Id, err = strconv.Atoi(req.FormValue("User[Authorization][ID]"))
-				if err != nil {
-					panic("Can't Convert ID to integer!")
-				}
-				u.Facebook = []user.FacebookUserData{data}
+			var data user.AuthorizationData
+			data.Authorization = req.FormValue("User[Authorization][Type]")
+			data.Id = req.FormValue("User[Authorization][ID]")
+			data.Token.AccessToken = req.FormValue("User[Authorization][Access]")
+			data.Token.RefreshToken = req.FormValue("User[Authorization][Refresh]")
+			data.Token.Expiry, err = time.Parse(time.RFC1123, req.FormValue("User[Authorization][Expiry]"))
+			if err != nil {
+				panic("Can't Convert Expiry to Time")
 			}
+			u.Authorizations = []user.AuthorizationData{data}
 
 			err = U.AddUser(&u)
 			if err != nil {
 				panic(err)
 			}
+
+			vars.Apply(login.LogIn(&u))
 
 			res.RedirectTo(u)
 		},

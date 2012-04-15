@@ -38,6 +38,7 @@
 package oauth
 
 import (
+	"../../log"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,6 +46,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -257,20 +259,26 @@ func (t *Transport) updateToken(tok *Token, v url.Values) error {
 		return errors.New("invalid response: " + r.Status)
 	}
 
-	body := make([]byte, r.ContentLength)
-	_, err = r.Body.Read(body)
-	if err != nil {
-		return err
-	}
+	contenttype := strings.Split(r.Header.Get("Content-Type"), "; ")
+	log.Debug("Content-Type: " + contenttype[0] + "\n\n\n")
 
 	var b struct {
 		Access    string        `json:"access_token"`
 		Refresh   string        `json:"refresh_token"`
 		ExpiresIn time.Duration `json:"expires_in"`
 	}
-	err = json.Unmarshal(body, &b) //I haven't tested to make sure this still works with Google, so beware
 
-	if err != nil {
+	switch contenttype[0] {
+	case "application/json":
+		if err = json.NewDecoder(r.Body).Decode(&b); err != nil {
+			return err
+		}
+	case "text/plain":
+		body := make([]byte, r.ContentLength)
+		_, err = r.Body.Read(body)
+		if err != nil {
+			return err
+		}
 		vals, err := url.ParseQuery(string(body))
 		if err != nil {
 			return err
@@ -283,7 +291,11 @@ func (t *Transport) updateToken(tok *Token, v url.Values) error {
 			return err
 		}
 		b.ExpiresIn = time.Duration(expires_in)
+
+	default:
+		return errors.New("Unknown token format")
 	}
+
 	tok.AccessToken = b.Access
 	tok.RefreshToken = b.Refresh
 	if b.ExpiresIn == 0 {

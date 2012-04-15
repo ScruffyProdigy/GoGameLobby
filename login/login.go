@@ -1,12 +1,60 @@
 package login
 
 import (
+	"../goauth2/oauth"
 	"../interceptor"
 	"../models/user"
+	"../oauther"
 	"../rack"
 	"../session"
 	"net/http"
+	"time"
 )
+
+type Authorizer interface {
+	oauther.Oauther
+	GetName() string
+	GetUserID(*oauth.Token) string
+	GetUserFriends(*oauth.Token) []string
+}
+
+type Middlewarer struct{}
+
+var Logger Middlewarer
+
+func (Middlewarer) HandleToken(o oauther.Oauther, tok *oauth.Token) rack.Middleware {
+	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+		a, canAuthorize := o.(Authorizer)
+		if !canAuthorize {
+			panic("oauth provider doesn't provide user information")
+		}
+
+		w := rack.BlankResponse()
+
+		authorization := a.GetName()
+		id := a.GetUserID(tok)
+
+		u := user.U.UserFromAuthorization(authorization, id)
+		if u != nil {
+			//if we find a user, log them in
+			vars.Apply(LogIn(u))
+			vars.Apply(session.AddFlash("Welcome back, " + u.ClashTag))
+
+			http.Redirect(w, r, "/", http.StatusFound)
+			return w.Results()
+		}
+
+		//otherwise, have them fill out the New User Form!
+		vars.Apply(session.Set("authorization", authorization))
+		vars.Apply(session.Set("access", tok.AccessToken))
+		vars.Apply(session.Set("refresh", tok.RefreshToken))
+		vars.Apply(session.Set("expiry", tok.Expiry.Format(time.RFC1123)))
+		vars.Apply(session.Set("auth_id", id))
+
+		http.Redirect(w, r, "/users/new", http.StatusFound)
+		return w.Results()
+	}
+}
 
 func CurrentUser() rack.VarFunc {
 	return session.Get("CurrentUser")
@@ -14,6 +62,10 @@ func CurrentUser() rack.VarFunc {
 
 func LogIn(u *user.User) rack.VarFunc {
 	return func(vars rack.Vars) interface{} {
+		if u == nil {
+			vars.Apply(LogOut())
+			return nil
+		}
 		vars.Apply(session.Set("CurrentUser", u.ClashTag))
 		vars["CurrentUser"] = u
 		return nil
