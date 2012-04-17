@@ -96,6 +96,11 @@ func (this *googleplus) GetUserID(tok *oauth.Token) (result string) {
 	return
 }
 
+/*
+	The Google+ API currently has no method for figuring out which users somebody is following
+	and thus, no way for me to help somebody find their friends on my site :-(
+
 func (this *googleplus) GetUserFriends(tok *oauth.Token) []string {
-	return []string{}
-}
+	//this function is not possible
+}	
+*/

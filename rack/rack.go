@@ -26,8 +26,8 @@ type Middleware func(req *http.Request, vars Vars, next NextFunc) (status int, h
 
 //the Rack stores all of the Middleware
 type Rack interface {
-	Add(Middleware) //	Add will add a middleware into the list; it is order specific, so make sure you're calling it in the right order
-	Go(Connection)  //	Go will start the rack with all of the middleware that have been added
+	Add(Middleware)      //	Add will add a middleware into the list; it is order specific, so make sure you're calling it in the right order
+	Go(Connection) error //	Go will start the rack with all of the middleware that have been added
 }
 
 type rack struct {
@@ -38,8 +38,8 @@ func (this *rack) Add(middle Middleware) {
 	this.middleware = append(this.middleware, middle)
 }
 
-func (this *rack) Go(conn Connection) {
-	conn.Go(func(w http.ResponseWriter, r *http.Request) {
+func (this *rack) Go(conn Connection) error {
+	return conn.Go(func(w http.ResponseWriter, r *http.Request) {
 		vars := make(Vars)
 		index := -1
 		var next NextFunc

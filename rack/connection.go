@@ -4,16 +4,16 @@ import "net/http"
 
 //Connection provides a common interface for HTTP and HTTPS Connections
 type Connection interface {
-	Go(func(http.ResponseWriter, *http.Request)) //Once you have the connection, just call go with a function that can handle a Response and a Request
+	Go(func(http.ResponseWriter, *http.Request)) error //Once you have the connection, just call go with a function that can handle a Response and a Request
 }
 
 type httpConnection struct {
 	address string
 }
 
-func (this *httpConnection) Go(f func(http.ResponseWriter, *http.Request)) {
+func (this *httpConnection) Go(f func(http.ResponseWriter, *http.Request)) error {
 	http.HandleFunc("/", f)
-	http.ListenAndServe(this.address, nil)
+	return http.ListenAndServe(this.address, nil)
 }
 
 //HttpConnection provides a basic HTTP Connection; good for a basic Website
@@ -29,9 +29,9 @@ type httpsConnection struct {
 	keyFile  string
 }
 
-func (this *httpsConnection) Go(f func(http.ResponseWriter, *http.Request)) {
+func (this *httpsConnection) Go(f func(http.ResponseWriter, *http.Request)) error {
 	http.HandleFunc("/", f)
-	http.ListenAndServeTLS(this.address, this.certFile, this.keyFile, nil)
+	return http.ListenAndServeTLS(this.address, this.certFile, this.keyFile, nil)
 }
 
 //HttpsConnection needs a certFile and a keyFile, but provides a more secure Https connection for encrypted communication

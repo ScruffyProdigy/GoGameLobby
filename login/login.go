@@ -15,7 +15,6 @@ type Authorizer interface {
 	oauther.Oauther
 	GetName() string
 	GetUserID(*oauth.Token) string
-	GetUserFriends(*oauth.Token) []string
 }
 
 type Middlewarer struct{}
@@ -30,9 +29,13 @@ func (Middlewarer) HandleToken(o oauther.Oauther, tok *oauth.Token) rack.Middlew
 			http.Redirect(w, r, "/", http.StatusFound)
 			return w.Results()
 		}
+
 		a, canAuthorize := o.(Authorizer)
 		if !canAuthorize {
-			panic("oauth provider doesn't provide user information")
+			status = http.StatusUnauthorized
+			_, header, _ = w.Results()
+			message = []byte("This provider doesn't give us enough information to log you in; try something less shitty")
+			return
 		}
 
 		authorization := a.GetName()

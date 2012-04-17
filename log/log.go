@@ -15,15 +15,15 @@ import "fmt"
 	and each also has a Log function, which returns the default output if it is valid, and a fake output if invalid
 */
 const (
-	Log_Level_Debug = iota
-	Log_Level_Info
-	Log_Level_Warning
-	Log_Level_Error
-	Log_Level_Fatal
-	Log_Level_Unknown
+	Level_Debug = iota
+	Level_Info
+	Level_Warning
+	Level_Error
+	Level_Fatal
+	Level_Unknown
 )
 
-var loggerLevel = Log_Level_Debug
+var loggerLevel = Level_Debug
 
 type dummyLogger struct {
 }
@@ -55,49 +55,49 @@ func logger(level int) io.Writer {
 }
 
 func Debug(message string) {
-	log("\nDebug: "+message, Log_Level_Debug)
+	log("\nDebug: "+message, Level_Debug)
 }
 
 func DebugLog() io.Writer {
-	return logger(Log_Level_Debug)
+	return logger(Level_Debug)
 }
 
 func Info(message string) {
-	log("\nInfo: "+message, Log_Level_Info)
+	log("\nInfo: "+message, Level_Info)
 }
 
 func InfoLog() io.Writer {
-	return logger(Log_Level_Info)
+	return logger(Level_Info)
 }
 
 func Warning(message string) {
-	log("\nWarning: "+message, Log_Level_Warning)
+	log("\nWarning: "+message, Level_Warning)
 }
 
 func WarningLog() io.Writer {
-	return logger(Log_Level_Warning)
+	return logger(Level_Warning)
 }
 
 func Error(message string) {
-	log("\nError: "+message, Log_Level_Error)
+	log("\nError: "+message, Level_Error)
 }
 
 func ErrorLog() io.Writer {
-	return logger(Log_Level_Error)
+	return logger(Level_Error)
 }
 
 func Fatal(message string) {
-	log("\nFatal: "+message, Log_Level_Fatal)
+	log("\nFatal: "+message, Level_Fatal)
 }
 
 func FatalLog() io.Writer {
-	return logger(Log_Level_Fatal)
+	return logger(Level_Fatal)
 }
 
 func Unknown(message string) {
-	log("\nUnknown: "+message, Log_Level_Unknown)
+	log("\nUnknown: "+message, Level_Unknown)
 }
 
 func UnknownLog() io.Writer {
-	return logger(Log_Level_Unknown)
+	return logger(Level_Unknown)
 }
