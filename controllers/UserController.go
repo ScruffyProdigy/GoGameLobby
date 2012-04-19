@@ -32,6 +32,10 @@ func init() {
 			u := vars["User"].(*user.User)
 			vars["Title"] = u.ClashTag
 			vars["Layout"] = "base"
+			lodges := L.LodgesFromMason(u.ClashTag)
+			if lodges != nil {
+				vars["Lodges"] = lodges
+			}
 			res.Render("users/show")
 		},
 		"new": func(res routes.Responder, req *http.Request, vars rack.Vars) {
@@ -60,13 +64,28 @@ func init() {
 			}
 
 			var u user.User
+			var data user.AuthorizationData
+			defer func(){
+				rec := recover()
+				if rec != nil {
+					vars.Apply(session.Set("authorization",data.Authorization))
+					vars.Apply(session.Set("auth_id",data.Id))
+					vars.Apply(session.Set("access",data.Token.AccessToken))
+					vars.Apply(session.Set("refresh",data.Token.RefreshToken))
+					vars.Apply(session.Set("expiry",data.Token.Expiry.Format(time.RFC1123)))
+					vars.Apply(session.AddFlash("You fucked something up, please try again"))
+					res.RedirectTo(routes.Url("/users/new"))
+					
+					/*This should be DRYed up login.HandleToken*/
+				}
+			}()
+			
 			u.ClashTag = req.FormValue("User[ClashTag]")
 			u.Points, err = strconv.Atoi(req.FormValue("User[Points]"))
 			if err != nil {
 				panic(err)
 			}
 
-			var data user.AuthorizationData
 			data.Authorization = req.FormValue("User[Authorization][Type]")
 			data.Id = req.FormValue("User[Authorization][ID]")
 			data.Token.AccessToken = req.FormValue("User[Authorization][Access]")

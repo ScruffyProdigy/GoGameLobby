@@ -1,0 +1,8 @@
+<h1>Lodges</h1>
+<ul>
+	{{range .Lodges}}
+	<a href='{{.Url}}'><li>{{.Name}}</li></a>
+	{{else}}
+	<li>No Current Lodges</li>
+	{{end}}
+<ul>

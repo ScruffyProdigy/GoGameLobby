@@ -1,0 +1,7 @@
+<h1>{{.Lodge.Name}}</h1>
+<p>This Mason Lodge has the following members:</p>
+<ul>
+{{range .Lodge.Masons}}
+<li><a href="/users/{{.}}">{{.}}</a></li>
+{{end}}
+</ul>

@@ -9,7 +9,6 @@ import (
 
 type UserCollection struct {
 	collection *mgo.Collection
-	indices	map[int]mgo.Index
 }
 
 var U *UserCollection = new(UserCollection)

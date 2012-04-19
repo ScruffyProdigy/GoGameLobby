@@ -260,7 +260,6 @@ func (t *Transport) updateToken(tok *Token, v url.Values) error {
 	}
 
 	contenttype := strings.Split(r.Header.Get("Content-Type"), "; ")
-	log.Debug("Content-Type: " + contenttype[0] + "\n\n\n")
 
 	var b struct {
 		Access    string        `json:"access_token"`
