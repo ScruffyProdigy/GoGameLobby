@@ -75,7 +75,7 @@ func (this *ResourceRouter) AddRoute(router Router) {
 	variablename: If we are drilling down into a member of the resource, we will add a variable to the rack variables, and this will be the name that it will set
 	getter:	if we need to get a member resource, you'll have to help us;  we'll give you the string representing the ID, you give us the resource
 */
-func Resource(m model.Collection, restfuncs map[string]HandlerFunc) *ResourceRouter {
+func Resource(m models.Collection, restfuncs map[string]HandlerFunc) *ResourceRouter {
 	resource := new(ResourceRouter)
 	resource.name = m.RouteName()
 	resource.collectionfuncs = newRouteList()

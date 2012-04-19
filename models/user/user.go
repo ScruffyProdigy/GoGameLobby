@@ -7,14 +7,20 @@ import (
 	"launchpad.net/mgo/bson"
 )
 
+const (
+	Index_ClashTag = iota
+	Index_Authorization
+)
+
 type UserCollection struct {
 	collection *mgo.Collection
+	indices	map[int]mgo.Index
 }
 
 var U *UserCollection = new(UserCollection)
 
 func init() {
-	model.RegisterModel(U)
+	models.RegisterModel(U)
 }
 
 type AuthorizationData struct {
@@ -47,6 +53,19 @@ func (*UserCollection) VarName() string {
 
 func (this *UserCollection) SetCollection(collection *mgo.Collection) {
 	this.collection = collection
+}
+
+func (this *UserCollection) GetIndices() []mgo.Index{
+	return []mgo.Index{
+		{
+			Key:[]string{"clashtag"},
+			Unique:true,
+		},
+		{
+			Key:[]string{"authorizations.authorization","authorizations.id"},
+			Unique:true,
+		},
+	}
 }
 
 func (this *UserCollection) UserFromClashTag(s string) *User {

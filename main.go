@@ -16,6 +16,7 @@ import (
 	"./routes"
 	"./session"
 	"./templater"
+	"./models"
 	"fmt"
 )
 
@@ -27,6 +28,8 @@ const (
 const mode = debug
 
 func main() {
+	models.SetUp()	//can't happen during models's init, because it needs to wait until each of the models has initialized
+	
 	i := interceptor.CreateInterceptor()
 
 	var facebookData facebooker.Data
