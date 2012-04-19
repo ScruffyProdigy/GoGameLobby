@@ -7,11 +7,6 @@ import (
 	"launchpad.net/mgo/bson"
 )
 
-const (
-	Index_ClashTag = iota
-	Index_Authorization
-)
-
 type UserCollection struct {
 	collection *mgo.Collection
 	indices	map[int]mgo.Index
