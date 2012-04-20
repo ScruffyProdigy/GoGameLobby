@@ -3,7 +3,6 @@ package googleplusser
 import (
 	"../goauth2/oauth"
 	"../log"
-	"../login"
 	"../oauther"
 	"encoding/json"
 	"net/http"
@@ -30,37 +29,37 @@ type Data struct {
 
 }
 
-type googleplus struct {
+type GooglePlus struct {
 	data   Data
 	config *oauth.Config
 }
 
-func NewGooglePlusser(data Data) login.Authorizer {
-	gp := new(googleplus)
+func NewGooglePlusser(data Data) *GooglePlus {
+	gp := new(GooglePlus)
 	gp.data = data
 	return gp
 }
 
-var Default login.Authorizer
+var Default *GooglePlus
 
-func SetConfiguration(data Data) login.Authorizer {
+func SetConfiguration(data Data) *GooglePlus {
 	Default = NewGooglePlusser(data)
 	return Default
 }
 
-func (*googleplus) GetName() string {
+func (*GooglePlus) GetName() string {
 	return "google"
 }
 
-func (this *googleplus) GetStartUrl() string {
+func (this *GooglePlus) GetStartUrl() string {
 	return "/" + this.data.StartUri
 }
 
-func (this *googleplus) GetRedirectUrl() string {
+func (this *GooglePlus) GetRedirectUrl() string {
 	return "/" + this.data.RedirectUri
 }
 
-func (this *googleplus) GetConfig() *oauth.Config {
+func (this *GooglePlus) GetConfig() *oauth.Config {
 	if this.config == nil {
 		this.config = new(oauth.Config)
 		this.config.ClientId = this.data.ClientID
@@ -75,7 +74,7 @@ func (this *googleplus) GetConfig() *oauth.Config {
 	return this.config
 }
 
-func (this *googleplus) GetUserID(tok *oauth.Token) (result string) {
+func (this *GooglePlus) GetUserID(tok *oauth.Token) (result string) {
 	oauther.GetSite(this, tok, "https://www.googleapis.com/plus/v1/people/me?key="+this.data.Apikey, func(res *http.Response) {
 		//use json to read in the result, and get 
 		var uid struct {

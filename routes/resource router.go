@@ -6,64 +6,66 @@ import (
 	"net/http"
 )
 
-type memberRouter struct {
-	variablename string
-	getter       func(string) interface{}
-	resource     RouteBranch
-}
-
-func (this *memberRouter) Route(section string, req *http.Request, vars rack.Vars) int {
-	received := this.getter(section)
-	if received == nil {
-		return route_elsewhere
-	}
-	vars[this.variablename] = received
-	return this.resource.Route(section, req, vars)
-}
-
-func (this *memberRouter) AddRoute(router Router) {
-	this.resource.AddRoute(router)
-}
-
-func (this *memberRouter) GetSubroutes(out chan<- Router) {
-	this.resource.GetSubroutes(out)
-}
-
-func newMemberRouter(variablename string, getter func(string) interface{}, resource RouteBranch) *memberRouter {
-	this := new(memberRouter)
-	this.variablename = variablename
-	this.getter = getter
-	this.resource = resource
-	return this
-}
-
 /*
 a ResourceRouter assumes that it represents a RESTful resource, and will process it as such
 it also allows you to add non-RESTful member and collection routes by exposing a route branch for each
 */
 type ResourceRouter struct {
-	name            string
-	collectionfuncs *routeList
-	memberfuncs     *routeList
-
-	//public
-	Collection RouteBranch //you can add non-RESTful collection-level routes here
-	Member     RouteBranch //you can add non-RESTful member-level routes here
+	Collection *Router //you can add non-RESTful collection-level routes here
+	Member     *Router //you can add non-RESTful member-level routes here
 }
 
-func (this *ResourceRouter) Route(section string, req *http.Request, vars rack.Vars) int {
-	if this.name == section {
-		return this.collectionfuncs.Route(section, req, vars)
+type splitter struct {
+	get, post, put, delete rack.Middleware
+}
+
+func (this splitter) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	var result rack.Middleware
+	switch r.Method {
+	case "GET":
+		result = this.get
+	case "POST":
+		result = this.post
+	case "PUT":
+		result = this.put
+	case "DELETE":
+		result = this.delete
+	default:
+		log.Warning("Request with method:" + r.Method)
+		return http.StatusBadRequest, make(http.Header), []byte("")
 	}
-	return route_elsewhere
+	if result == nil {
+		return next()
+	}
+	return result.Run(r, vars, next)
 }
 
-func (this *ResourceRouter) GetSubroutes(out chan<- Router) {
-	this.Collection.GetSubroutes(out)
+type memberSignaler struct {
+	varName string
+	indexer func(s string) interface{}
 }
 
-func (this *ResourceRouter) AddRoute(router Router) {
-	this.Collection.AddRoute(router)
+func (this memberSignaler) Run(r *http.Request, vars rack.Vars) bool {
+	id := vars.Apply(currentSection).(string)
+	result := this.indexer(id)
+	if result == nil {
+		return false
+	}
+
+	vars[this.varName] = result
+	return true
+}
+
+type collectionSignaler struct {
+	name string
+}
+
+func (this collectionSignaler) Run(r *http.Request, vars rack.Vars) bool {
+	section := vars.Apply(currentSection).(string)
+	if section == this.name {
+		return true
+	}
+	return false
 }
 
 /*
@@ -75,56 +77,25 @@ func (this *ResourceRouter) AddRoute(router Router) {
 	variablename: If we are drilling down into a member of the resource, we will add a variable to the rack variables, and this will be the name that it will set
 	getter:	if we need to get a member resource, you'll have to help us;  we'll give you the string representing the ID, you give us the resource
 */
-func Resource(m models.Collection, restfuncs map[string]HandlerFunc) *ResourceRouter {
+func Resource(m models.Collection, restfuncs map[string]rack.Middleware) *ResourceRouter {
 	resource := new(ResourceRouter)
-	resource.name = m.RouteName()
-	resource.collectionfuncs = newRouteList()
-	resource.memberfuncs = newRouteList()
-	resource.Collection = resource.collectionfuncs
-	resource.Member = resource.memberfuncs
 
-	var indexer = func(s string) interface{} {
+	resource.Member = NewRouter()
+	resource.Member.routing = memberSignaler{varName: m.VarName(), indexer: func(s string) interface{} {
 		return m.Indexer(s)
+	}}
+	resource.Member.Action = splitter{get: restfuncs["show"], put: restfuncs["update"], delete: restfuncs["destroy"]}
+	if restfuncs["edit"] != nil {
+		resource.Member.AddRoute(Get("edit", restfuncs["edit"]))
 	}
 
-	resource.Collection.AddRoute(newMemberRouter(m.VarName(), indexer, resource.Member))
-
-	var function HandlerFunc
-
-	function = restfuncs["index"]
-	if function != nil {
-		resource.Collection.AddRoute(Get("/", function))
+	resource.Collection = NewRouter()
+	resource.Collection.routing = collectionSignaler{name: m.RouteName()}
+	resource.Collection.Action = splitter{get: restfuncs["index"], post: restfuncs["create"]}
+	if restfuncs["new"] != nil {
+		resource.Collection.AddRoute(Get("new", restfuncs["new"]))
 	}
-
-	function = restfuncs["new"]
-	if function != nil {
-		resource.Collection.AddRoute(Get("new", function))
-	}
-
-	function = restfuncs["create"]
-	if function != nil {
-		resource.Collection.AddRoute(Post("/", function))
-	}
-
-	function = restfuncs["show"]
-	if function != nil {
-		resource.Member.AddRoute(Get("/", function))
-	}
-
-	function = restfuncs["edit"]
-	if function != nil {
-		resource.Member.AddRoute(Get("edit", function))
-	}
-
-	function = restfuncs["update"]
-	if function != nil {
-		resource.Member.AddRoute(Put("/", function))
-	}
-
-	function = restfuncs["delete"]
-	if function != nil {
-		resource.Member.AddRoute(Delete("/", function))
-	}
+	resource.Collection.AddRoute(resource.Member)
 
 	return resource
 }

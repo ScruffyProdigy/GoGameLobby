@@ -6,7 +6,6 @@ package facebooker
 import (
 	"../goauth2/oauth"
 	"../log"
-	"../login"
 	"../oauther"
 	"encoding/json"
 	"net/http"
@@ -26,29 +25,30 @@ type Data struct {
 	RedirectUrl string   `json:"redirect_url"` // you decide - where facebook sends the user after they've been authenticated
 }
 
-type facebooker struct {
+type Facebooker struct {
 	data   Data
 	config *oauth.Config
 }
 
 //most applications only need one set of application settings - this is where that should be stored
-var Default oauther.Oauther
+var Default *Facebooker
 
-func NewFacebooker(data Data) login.Authorizer {
-	this := new(facebooker)
+func NewFacebooker(data Data) *Facebooker {
+	this := new(Facebooker)
 	this.data = data
 	return this
 }
 
-func SetConfiguration(data Data) {
+func SetConfiguration(data Data) *Facebooker {
 	Default = NewFacebooker(data)
+	return Default
 }
 
-func (*facebooker) GetName() string {
+func (*Facebooker) GetName() string {
 	return "facebook"
 }
 
-func (this *facebooker) GetConfig() *oauth.Config {
+func (this *Facebooker) GetConfig() *oauth.Config {
 	if this.config == nil {
 		this.config = new(oauth.Config)
 		this.config.ClientId = this.data.AppId
@@ -61,15 +61,15 @@ func (this *facebooker) GetConfig() *oauth.Config {
 	return this.config
 }
 
-func (this *facebooker) GetStartUrl() string {
+func (this *Facebooker) GetStartUrl() string {
 	return "/" + this.data.StartUrl
 }
 
-func (this *facebooker) GetRedirectUrl() string {
+func (this *Facebooker) GetRedirectUrl() string {
 	return "/" + this.data.RedirectUrl
 }
 
-func (this *facebooker) GetUserID(tok *oauth.Token) (result string) {
+func (this *Facebooker) GetUserID(tok *oauth.Token) (result string) {
 	oauther.GetSite(this, tok, "https://graph.facebook.com/me", func(res *http.Response) {
 		//use json to read in the result, and get 
 		var uid struct {
@@ -90,7 +90,7 @@ func (this *facebooker) GetUserID(tok *oauth.Token) (result string) {
 	return
 }
 
-func (this *facebooker) GetUserFriends(tok *oauth.Token) (result []string) {
+func (this *Facebooker) GetUserFriends(tok *oauth.Token) (result []string) {
 	oauther.GetSite(this, tok, "https://graph.facebook.com/me/friends", func(res *http.Response) {
 		//use json to read in the result, and get 
 		result = []string{}

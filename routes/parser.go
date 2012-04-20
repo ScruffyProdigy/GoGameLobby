@@ -10,7 +10,7 @@ import (
 	parser breaks down the request's URL path into a slice of strings
 	later middleware will use it to direct control
 */
-func Parser(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+var Parser = rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
 	parsedRoute := strings.Split(r.URL.Path, "/")
 	newParsedRoute := make([]string, 0, len(parsedRoute)+1)
 	for _, section := range parsedRoute {
@@ -25,6 +25,17 @@ func Parser(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Head
 	newParsedRoute[l] = "/"
 
 	vars["parsedRoute"] = newParsedRoute
+	vars["currentSection"] = 0
 
 	return next()
+})
+
+func currentSection(vars rack.Vars) interface{} {
+	return vars["parsedRoute"].([]string)[vars["currentSection"].(int)]
+}
+
+func nextSection(vars rack.Vars) (result interface{}) {
+	result = vars.Apply(currentSection)
+	vars["currentSection"] = vars["currentSection"].(int) + 1
+	return
 }

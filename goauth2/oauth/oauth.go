@@ -38,7 +38,6 @@
 package oauth
 
 import (
-	"../../log"
 	"encoding/json"
 	"errors"
 	"fmt"

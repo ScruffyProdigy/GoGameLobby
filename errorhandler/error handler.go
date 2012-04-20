@@ -20,7 +20,7 @@ func getErrorString(rec interface{}) string {
 	return "Unknown Error"
 }
 
-func ErrorHandler(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+var ErrorHandler = rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
@@ -32,4 +32,4 @@ func ErrorHandler(r *http.Request, vars rack.Vars, next rack.NextFunc) (status i
 		}
 	}()
 	return next()
-}
+})

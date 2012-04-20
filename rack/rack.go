@@ -20,58 +20,61 @@ import (
 //NextFunc is a function that gets passed to each of the Middleware so that they can interact with the next piece of Middleware
 type NextFunc func() (int, http.Header, []byte)
 
-//Middleware is a function that takes an HTTP request, a map of variables, and a function call to get the next Middleware
-//it is expected to return an HTTP status code, a map of headers, and the resulting HTML
-type Middleware func(req *http.Request, vars Vars, next NextFunc) (status int, header http.Header, message []byte)
+//This is the signature of our interface.  Anything that fits this signature can work inside of a rack
+type Func func(req *http.Request, vars Vars, next NextFunc) (status int, header http.Header, message []byte)
 
-//the Rack stores all of the Middleware
-type Rack interface {
-	Add(Middleware)      //	Add will add a middleware into the list; it is order specific, so make sure you're calling it in the right order
-	Go(Connection) error //	Go will start the rack with all of the middleware that have been added
+type Middleware interface {
+	Run(req *http.Request, vars Vars, next NextFunc) (status int, header http.Header, message []byte)
 }
 
-type rack struct {
-	middleware []Middleware
+func (this Func) Run(req *http.Request, vars Vars, next NextFunc) (status int, header http.Header, message []byte) {
+	return this(req, vars, next)
 }
 
-func (this *rack) Add(middle Middleware) {
-	this.middleware = append(this.middleware, middle)
+type Rack []Middleware
+
+func NewRack() *Rack {
+	rack := make(Rack, 0, 2)
+	return &rack
 }
 
-func (this *rack) Go(conn Connection) error {
-	return conn.Go(func(w http.ResponseWriter, r *http.Request) {
-		vars := make(Vars)
-		index := -1
-		var next NextFunc
-		next = func() (int, http.Header, []byte) {
-			index++
-			if index >= len(this.middleware) {
-				return BlankResponse().Results()
-			}
-			//			s,h,m := this.middleware[index](r, vars, next)
-			//			fmt.Fprint(log.DebugLog(),"\n Debug - Passing Down: ",s,h,",and ",len(m)," bytes")
-			//			return s,h,m
-			return this.middleware[index](r, vars, next)
+func (this *Rack) Add(m Middleware) {
+	*this = append(*this, m)
+}
+
+func (this Rack) Run(r *http.Request, vars Vars, next NextFunc) (status int, header http.Header, message []byte) {
+	index := -1
+	var ourNext NextFunc
+	ourNext = func() (int, http.Header, []byte) {
+		index++
+		if index >= len(this) {
+			return next()
 		}
+		//			s,h,m := this.middleware[index](r, vars, next)
+		//			fmt.Fprint(log.DebugLog(),"\n Debug - Passing Down: ",s,h,",and ",len(m)," bytes")
+		//			return s,h,m
+		return this[index].Run(r, vars, ourNext)
+	}
+	return ourNext()
+}
 
-		//this is the result of all of the middleware
-		//so, write it out to the response writer
-		status, headers, message := next()
+//Up is the public interface to the default Rack
+var Up *Rack = NewRack()
+
+func NotFound() (status int, header http.Header, message []byte) {
+	return http.StatusNotFound, make(http.Header), []byte("")
+}
+
+func Run(c Connection, m Middleware) error {
+	return c.Go(func(w http.ResponseWriter, r *http.Request) {
+		vars := NewVars()
+		status, headers, message := m.Run(r, vars, NotFound)
 		for k, _ := range headers {
 			w.Header().Set(k, headers.Get(k))
 		}
 		w.WriteHeader(status)
 		w.Write(message)
-
 	})
-}
-
-//Up is the public interface to the default Rack
-var Up Rack
-
-//NewRack() is available in case you want a Rack separate from the default Rack 
-func NewRack() Rack {
-	return new(rack)
 }
 
 func init() {

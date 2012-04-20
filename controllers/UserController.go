@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"../log"
 	"../login"
 	"../models/user"
 	"../rack"
+	"../redirecter"
 	"../routes"
 	"../session"
+	"../templater"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,8 +17,8 @@ import (
 var U = user.U
 
 func init() {
-	rest := map[string]routes.HandlerFunc{
-		"index": func(res routes.Responder, req *http.Request, vars rack.Vars) {
+	rest := map[string]rack.Middleware{
+		"index": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 			var users []user.User
 			err := U.AllUsers(&users)
 			if err != nil {
@@ -26,27 +29,33 @@ func init() {
 			vars["Title"] = "Users"
 			vars["Layout"] = "base"
 
-			res.Render("users/index")
-		},
-		"show": func(res routes.Responder, req *http.Request, vars rack.Vars) {
+			w := rack.BlankResponse()
+			templater.Get("users/index").Execute(w, vars)
+			return w.Results()
+		}),
+		"show": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 			u := vars["User"].(*user.User)
+
 			vars["Title"] = u.ClashTag
 			vars["Layout"] = "base"
+
 			lodges := L.LodgesFromMason(u.ClashTag)
 			if lodges != nil {
 				vars["Lodges"] = lodges
 			}
-			res.Render("users/show")
-		},
-		"new": func(res routes.Responder, req *http.Request, vars rack.Vars) {
+
+			w := rack.BlankResponse()
+			templater.Get("users/show").Execute(w, vars)
+			return w.Results()
+		}),
+		"new": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 			vars["Title"] = "New User"
 			vars["Layout"] = "base"
 
 			authorization, isString := vars.Apply(session.Clear("authorization")).(string)
 			if !isString {
-				vars.Apply(session.AddFlash("Please Log In with one of the specified providers"))
-				res.RedirectTo(routes.Url("/"))
-				return
+				log.Warning("No Authorization found")
+				return next()
 			}
 
 			vars["authorization"] = authorization
@@ -55,59 +64,52 @@ func init() {
 			vars["expiry"] = vars.Apply(session.Clear("expiry"))
 			vars["auth_id"] = vars.Apply(session.Clear("auth_id"))
 
-			res.Render("users/new")
-		},
-		"create": func(res routes.Responder, req *http.Request, vars rack.Vars) {
-			err := req.ParseForm()
+			w := rack.BlankResponse()
+			templater.Get("users/new").Execute(w, vars)
+			return w.Results()
+		}),
+		"create": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+			err := r.ParseForm()
 			if err != nil {
 				panic(err)
 			}
 
 			var u user.User
 			var data user.AuthorizationData
-			defer func(){
+			defer func() {
 				rec := recover()
 				if rec != nil {
-					vars.Apply(session.Set("authorization",data.Authorization))
-					vars.Apply(session.Set("auth_id",data.Id))
-					vars.Apply(session.Set("access",data.Token.AccessToken))
-					vars.Apply(session.Set("refresh",data.Token.RefreshToken))
-					vars.Apply(session.Set("expiry",data.Token.Expiry.Format(time.RFC1123)))
-					vars.Apply(session.AddFlash("You fucked something up, please try again"))
-					res.RedirectTo(routes.Url("/users/new"))
-					
-					/*This should be DRYed up login.HandleToken*/
+					status, header, message = login.NewUserForm{Authorization: data.Authorization, ID: data.Id, Tok: &data.Token}.Run(r, vars, next)
 				}
 			}()
-			
-			u.ClashTag = req.FormValue("User[ClashTag]")
-			u.Points, err = strconv.Atoi(req.FormValue("User[Points]"))
+
+			u.ClashTag = r.FormValue("User[ClashTag]")
+			u.Points, err = strconv.Atoi(r.FormValue("User[Points]"))
 			if err != nil {
 				panic(err)
 			}
 
-			data.Authorization = req.FormValue("User[Authorization][Type]")
-			data.Id = req.FormValue("User[Authorization][ID]")
-			data.Token.AccessToken = req.FormValue("User[Authorization][Access]")
-			data.Token.RefreshToken = req.FormValue("User[Authorization][Refresh]")
-			data.Token.Expiry, err = time.Parse(time.RFC1123, req.FormValue("User[Authorization][Expiry]"))
+			//would be nice to replace this with some kind of reflection based reader
+			data.Authorization = r.FormValue("User[Authorization][Type]")
+			data.Id = r.FormValue("User[Authorization][ID]")
+			data.Token.AccessToken = r.FormValue("User[Authorization][Access]")
+			data.Token.RefreshToken = r.FormValue("User[Authorization][Refresh]")
+			data.Token.Expiry, err = time.Parse(time.RFC1123, r.FormValue("User[Authorization][Expiry]"))
 			if err != nil {
 				panic("Can't Convert Expiry to Time")
 			}
-			u.Authorizations = []user.AuthorizationData{data}
 
+			u.Authorizations = []user.AuthorizationData{data}
 			err = U.AddUser(&u)
 			if err != nil {
 				panic(err)
 			}
 
-			vars.Apply(login.LogIn(&u))
-
-			res.RedirectTo(u)
-		},
+			return redirecter.Go(u.Url(), login.LogIn(&u)).Run(r, vars, next)
+		}),
 	}
 
 	userResource := routes.Resource(U, rest)
 
-	routes.Root.AddRoute(userResource)
+	routes.Root.AddRoute(userResource.Collection)
 }

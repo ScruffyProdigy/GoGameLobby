@@ -9,7 +9,7 @@ import (
 	Middleware is the Middleware function that inserts a Session variable as "Session" into Rack variables
 	This allows all later Middleware to have persistent effects
 */
-func Middleware(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+var Middleware = rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
 	session := get(r)
 	vars["session"] = Session(session)
 
@@ -22,7 +22,7 @@ func Middleware(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.
 	w := rack.CreateResponse(next())
 	session.save(w)
 	return w.Results()
-}
+})
 
 func Set(k, v interface{}) rack.VarFunc {
 	return func(vars rack.Vars) interface{} {

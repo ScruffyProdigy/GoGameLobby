@@ -10,13 +10,12 @@ import (
 	"./loadconfiguration"
 	"./log"
 	"./login"
-	"./notfound"
+	"./models"
 	"./oauther"
 	"./rack"
 	"./routes"
 	"./session"
 	"./templater"
-	"./models"
 	"fmt"
 )
 
@@ -28,43 +27,55 @@ const (
 const mode = debug
 
 func main() {
-	models.SetUp()	//can't happen during models's init, because it needs to wait until each of the models has initialized
-	
-	i := interceptor.CreateInterceptor()
 
+	//set up the models
+	models.SetUp() //can't happen during models's init, because it needs to wait until each of the models has initialized
+
+	//set up the interceptor routes
+	cept := interceptor.NewInterceptor()
+
+	//facebook
 	var facebookData facebooker.Data
 	err := configurations.Load("facebook", &facebookData)
 	if err != nil {
 		panic(err)
 	}
 	facebooker.SetConfiguration(facebookData)
-	oauther.RegisterOauth(i, facebooker.Default, login.Logger)
+	oauther.RegisterOauth(cept, facebooker.Default, login.CreateHandler(facebooker.Default))
 
+	//google plus
 	var googleData googleplusser.Data
 	err = configurations.Load("google", &googleData)
 	if err != nil {
 		panic(err)
 	}
 	googleplusser.SetConfiguration(googleData)
-	oauther.RegisterOauth(i, googleplusser.Default, login.Logger)
+	oauther.RegisterOauth(cept, googleplusser.Default, login.CreateHandler(googleplusser.Default))
 
-	login.RegisterLogout(i, "/logout/")
+	//logging out
+	cept.Intercept("/logout/", login.LogOut)
 
+	//load the templates for the views
 	templater.LoadTemplates("./views")
 
+	//set up default variables
+	defaults := rack.NewVars()
+	defaults["Layout"] = "base"
+
+	//set up the rack
+	rack.Up.Add(defaults)
 	rack.Up.Add(layouts.AddLayout)
 	rack.Up.Add(layouts.SetErrorLayout)
-	rack.Up.Add(layouts.Defaulter("Layout", "base"))
 	if mode != debug {
 		rack.Up.Add(errorhandler.ErrorHandler) //in debug version, it's more useful to just let it crash, so we can get more error information
 	}
 	rack.Up.Add(session.Middleware)
 	rack.Up.Add(login.Middleware)
-	rack.Up.Add(i.Middleware())
+	rack.Up.Add(cept)
 	rack.Up.Add(routes.Parser)
-	rack.Up.Add(routes.RouterWare(routes.Root))
-	rack.Up.Add(notfound.NotFound)
+	rack.Up.Add(routes.Root)
 
+	//alert the user as to where we are running
 	var site = ":80"
 	if mode == debug {
 		site = ":3000"
@@ -72,11 +83,14 @@ func main() {
 
 	fmt.Print("\n\nStarting at localhost" + site + "!\n\n\n")
 
+	//set an appropriate logging level
 	if mode == release {
 		log.SetLogLevel(log.Level_Warning)
 	}
 
-	err = rack.Up.Go(rack.HttpConnection(site))
+	//We're ready to go!
+	//run each request through the rack!
+	err = rack.Run(rack.HttpConnection(site), rack.Up)
 	if err != nil {
 		fmt.Print("Error: " + err.Error())
 	}

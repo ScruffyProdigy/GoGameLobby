@@ -49,15 +49,15 @@ func (this *UserCollection) SetCollection(collection *mgo.Collection) {
 	this.collection = collection
 }
 
-func (this *UserCollection) GetIndices() []mgo.Index{
+func (this *UserCollection) GetIndices() []mgo.Index {
 	return []mgo.Index{
 		{
-			Key:[]string{"clashtag"},
-			Unique:true,
+			Key:    []string{"clashtag"},
+			Unique: true,
 		},
 		{
-			Key:[]string{"authorizations.authorization","authorizations.id"},
-			Unique:true,
+			Key:    []string{"authorizations.authorization", "authorizations.id"},
+			Unique: true,
 		},
 	}
 }

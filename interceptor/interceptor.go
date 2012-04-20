@@ -9,14 +9,9 @@ import (
 	"net/http"
 )
 
-type Interceptor interface {
-	Intercept(string, rack.Middleware)
-	Middleware() rack.Middleware
-}
+type Interceptor map[string]rack.Middleware
 
-type interceptor map[string]rack.Middleware
-
-func (this interceptor) Intercept(url string, exec rack.Middleware) {
+func (this Interceptor) Intercept(url string, exec rack.Middleware) {
 	if this[url] != nil {
 		log.Error("Interception '" + url + "' already registered!")
 		panic("Interception already registered!")
@@ -24,17 +19,15 @@ func (this interceptor) Intercept(url string, exec rack.Middleware) {
 	this[url] = exec
 }
 
-func (this interceptor) Middleware() rack.Middleware {
-	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
-		url := r.URL.Path
-		exec := this[url]
-		if exec == nil {
-			return next()
-		}
-		return exec(r, vars, next)
+func (this Interceptor) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+	url := r.URL.Path
+	exec := this[url]
+	if exec == nil {
+		return next()
 	}
+	return exec.Run(r, vars, next)
 }
 
-func CreateInterceptor() Interceptor {
-	return make(interceptor)
+func NewInterceptor() Interceptor {
+	return make(Interceptor)
 }

@@ -13,32 +13,29 @@ import (
 	It checks the status of the response, and sets the layout to status number if it is found
 	if it is not found, it sets it to a more general layout (if found) such as 40x, or 50x
 */
-func Statuser(layoutstr, folder string) rack.Middleware {
-	return func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-		status, header, message = next()
+type Statuser struct {
+	ErrorVar  string //the variable to store the error code in
+	LayoutVar string //the variable to store the layout in
+	Folder    string //the folder where the layouts are kept
+}
 
-		layout := strconv.Itoa(status)
-		if templater.Available(folder + layout) {
-			vars[layoutstr] = layout
-			return
-		}
+func (this Statuser) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	status, header, message = next()
 
-		layout = strconv.Itoa(status/100) + "0x"
-		if templater.Available(folder + layout) {
-			vars[layoutstr] = layout
-			return
-		}
-
+	layout := strconv.Itoa(status)
+	if templater.Available(this.Folder + "/" + layout) {
+		vars[this.LayoutVar] = layout
 		return
 	}
+
+	layout = strconv.Itoa(status/100) + "0x"
+	if templater.Available(this.Folder + "/" + layout) {
+		vars[this.ErrorVar] = strconv.Itoa(status)
+		vars[this.LayoutVar] = layout
+		return
+	}
+
+	return
 }
 
-/*
-	SetErrorLayout is the default version of Statuser.  It works well with AddLayout
-	It sets the status code into the "Layout" variable, if the layout is found in the "layouts" folder
-*/
-var SetErrorLayout rack.Middleware
-
-func init() {
-	SetErrorLayout = Statuser("Layout", "layouts/")
-}
+var SetErrorLayout = Statuser{LayoutVar: "Layout", Folder: "layouts", ErrorVar: "Error"}

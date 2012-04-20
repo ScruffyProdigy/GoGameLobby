@@ -4,7 +4,6 @@ import (
 	"../"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
-	"../../log"
 )
 
 type LodgeCollection struct {
@@ -18,8 +17,8 @@ func init() {
 }
 
 type Lodge struct {
-	Name       string
-	Masons		[]string
+	Name   string
+	Masons []string
 }
 
 func (this Lodge) Url() string {
@@ -42,14 +41,14 @@ func (this *LodgeCollection) SetCollection(collection *mgo.Collection) {
 	this.collection = collection
 }
 
-func (this *LodgeCollection) GetIndices() []mgo.Index{
+func (this *LodgeCollection) GetIndices() []mgo.Index {
 	return []mgo.Index{
 		{
-			Key:[]string{"name"},
-			Unique:true,
+			Key:    []string{"name"},
+			Unique: true,
 		},
 		{
-			Key:[]string{"masons"},
+			Key: []string{"masons"},
 		},
 	}
 }
@@ -70,12 +69,12 @@ func (this *LodgeCollection) LodgeFromName(s string) *Lodge {
 func (this *LodgeCollection) LodgesFromMason(clashtag string) []Lodge {
 
 	query := bson.M{"masons": clashtag}
-	count,err := this.collection.Find(query).Count()
+	count, err := this.collection.Find(query).Count()
 	if err != nil {
 		return nil
 	}
-	
-	result := make([]Lodge,count)
+
+	result := make([]Lodge, count)
 
 	err = this.collection.Find(query).All(&result)
 	if err != nil {
