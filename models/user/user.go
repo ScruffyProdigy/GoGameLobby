@@ -7,14 +7,25 @@ import (
 	"launchpad.net/mgo/bson"
 )
 
-type UserCollection struct {
-	collection *mgo.Collection
-}
-
 var U *UserCollection = new(UserCollection)
 
 func init() {
-	models.RegisterModel(U)
+	model.RegisterModel(U)
+}
+
+/*
+
+	User
+
+*/
+
+
+type User struct {
+	ID	           bson.ObjectId         `_id`
+	ClashTag       string
+	Points         int
+	Authorizations []AuthorizationData
+	Lodges			[]string
 }
 
 type AuthorizationData struct {
@@ -23,30 +34,59 @@ type AuthorizationData struct {
 	Token         oauth.Token
 }
 
-type User struct {
-	ClashTag       string
-	Points         int
-	Authorizations []AuthorizationData
-}
+//	Utility Functions
+
 
 func (this User) Url() string {
 	return "/users/" + this.ClashTag
 }
 
+//	Interface Methods
+	
+
+func (this *User) Validate() (err []error) {
+	return nil
+}
+
+func (this *User) IsNew() bool {
+	return !this.ID.Valid()
+}
+
+func (this *User) Collection() model.Collection {
+	return U
+}
+
+func (this *User) GetID() bson.ObjectId {
+	return this.ID
+}
+
+func (this *User) SetID(id bson.ObjectId) {
+	this.ID = id
+}
+
+/*
+
+	UserCollection
+
+*/
+
+type UserCollection struct {
+	collection *mgo.Collection
+}
+
+//	Setup Functions
+
+
 func (*UserCollection) CollectionName() string {
 	return "users"
 }
 
-func (*UserCollection) RouteName() string {
-	return "users"
-}
-
-func (*UserCollection) VarName() string {
-	return "User"
-}
-
 func (this *UserCollection) SetCollection(collection *mgo.Collection) {
 	this.collection = collection
+}
+
+func (this *UserCollection) GetCollection() *mgo.Collection {
+	return this.collection
 }
 
 func (this *UserCollection) GetIndices() []mgo.Index {
@@ -61,6 +101,9 @@ func (this *UserCollection) GetIndices() []mgo.Index {
 		},
 	}
 }
+
+//	Queries
+
 
 func (this *UserCollection) UserFromClashTag(s string) *User {
 	var result User
@@ -90,12 +133,4 @@ func (this *UserCollection) UserFromAuthorization(authorization, id string) *Use
 
 func (this *UserCollection) AllUsers(out *[]User) error {
 	return this.collection.Find(bson.M{}).All(out)
-}
-
-func (this *UserCollection) Indexer(s string) interface{} {
-	return this.UserFromClashTag(s)
-}
-
-func (this *UserCollection) AddUser(user *User) error {
-	return this.collection.Insert(user)
 }

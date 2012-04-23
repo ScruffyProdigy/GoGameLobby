@@ -4,41 +4,100 @@ import (
 	"../"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
+	"../user"
+	"errors"
+	"../../log"
 )
+
+var L = new(LodgeCollection)
+
+func init() {
+	model.RegisterModel(L)
+}
+
+/*
+
+	Lodge
+
+*/
+
+type Lodge struct {
+	ID	bson.ObjectId `_id`
+	Name   string
+	Masons []string
+	Games	[]bson.ObjectId
+}
+
+//		Utility Functions 
+		
+		
+func (this Lodge) Url() string {
+	return "/lodges/" + this.Name
+}
+
+func (this *Lodge) AddMason(u *user.User) {
+	this.Masons = append(this.Masons,u.ClashTag)
+	if !this.IsNew() {
+		model.Save(this)
+	}
+	u.Lodges = append(u.Lodges,this.Name)
+	if !u.IsNew() {
+		log.Debug("User is not new; saving User")
+		model.Save(u)
+	}
+}
+
+//		Interface Methods
+
+
+func (this *Lodge) Validate() (errs []error) {
+	//Name should be unique
+	other := L.LodgeFromName(this.Name)
+	if other != nil && other.ID != this.ID {
+		errs = append(errs,errors.New("Lodge Name Should Be Unique"))
+	}
+	return
+}
+
+func (this *Lodge) IsNew() bool {
+	return !this.ID.Valid()
+}
+
+func (this *Lodge) Collection() model.Collection {
+	return L
+}
+
+func (this *Lodge) GetID() bson.ObjectId {
+	return this.ID
+}
+
+func (this *Lodge) SetID(id bson.ObjectId) {
+	this.ID = id
+}
+
+/*
+
+	Lodge Collection
+
+*/
 
 type LodgeCollection struct {
 	collection *mgo.Collection
 }
 
-var L = new(LodgeCollection)
+//	Setup Functions
 
-func init() {
-	models.RegisterModel(L)
-}
-
-type Lodge struct {
-	Name   string
-	Masons []string
-}
-
-func (this Lodge) Url() string {
-	return "/lodges/" + this.Name
-}
 
 func (*LodgeCollection) CollectionName() string {
 	return "lodges"
 }
 
-func (*LodgeCollection) RouteName() string {
-	return "lodges"
-}
-
-func (*LodgeCollection) VarName() string {
-	return "Lodge"
-}
-
 func (this *LodgeCollection) SetCollection(collection *mgo.Collection) {
 	this.collection = collection
+}
+
+func (this *LodgeCollection) GetCollection() *mgo.Collection {
+	return this.collection
 }
 
 func (this *LodgeCollection) GetIndices() []mgo.Index {
@@ -53,6 +112,9 @@ func (this *LodgeCollection) GetIndices() []mgo.Index {
 	}
 }
 
+//	Queries
+
+
 func (this *LodgeCollection) LodgeFromName(s string) *Lodge {
 	var result Lodge
 
@@ -66,9 +128,9 @@ func (this *LodgeCollection) LodgeFromName(s string) *Lodge {
 	return &result
 }
 
-func (this *LodgeCollection) LodgesFromMason(clashtag string) []Lodge {
+func (this *LodgeCollection) LodgesFromMason(u *user.User) []Lodge {
 
-	query := bson.M{"masons": clashtag}
+	query := bson.M{"masons": u.ClashTag}
 	count, err := this.collection.Find(query).Count()
 	if err != nil {
 		return nil
@@ -86,12 +148,4 @@ func (this *LodgeCollection) LodgesFromMason(clashtag string) []Lodge {
 
 func (this *LodgeCollection) AllLodges(out *[]Lodge) error {
 	return this.collection.Find(bson.M{}).All(out)
-}
-
-func (this *LodgeCollection) Indexer(s string) interface{} {
-	return this.LodgeFromName(s)
-}
-
-func (this *LodgeCollection) AddLodge(lodge *Lodge) error {
-	return this.collection.Insert(lodge)
 }

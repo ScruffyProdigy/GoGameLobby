@@ -39,14 +39,14 @@ type NewUserForm struct {
 }
 
 func (this NewUserForm) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return redirecter.Go("/users/new",
+	return redirecter.Go(r,vars,"/users/new",
 		session.Set("authorization", this.Authorization),
 		session.Set("auth_id", this.ID),
 		session.Set("access", this.Tok.AccessToken),
 		session.Set("refresh", this.Tok.RefreshToken),
 		session.Set("expiry", this.Tok.Expiry.Format(time.RFC1123)),
 		session.AddFlash("You fucked something up, please try again"),
-	).Run(r, vars, next)
+	)
 }
 
 func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
@@ -76,8 +76,8 @@ func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.NextFunc
 	return NewUserForm{Tok: this.tok, Authorization: authorization, ID: id}.Run(r, vars, next)
 }
 
-func CurrentUser() rack.VarFunc {
-	return session.Get("CurrentUser")
+func CurrentUser(vars rack.Vars) *user.User{
+	return vars["CurrentUser"].(*user.User)
 }
 
 func LogIn(u *user.User) rack.VarFunc {

@@ -11,15 +11,15 @@ type Redirecter struct {
 }
 
 func (this Redirecter) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	for _, a := range this.Apply {
+	return Go(r,vars,this.Path,this.Apply...)
+}
+
+func Go(r *http.Request, vars rack.Vars,path string, apply ...rack.VarFunc) (status int, header http.Header, message []byte) {
+	for _, a := range apply {
 		vars.Apply(a)
 	}
 
 	w := rack.BlankResponse()
-	http.Redirect(w, r, this.Path, http.StatusFound)
+	http.Redirect(w, r, path, http.StatusFound)
 	return w.Results()
-}
-
-func Go(path string, apply ...rack.VarFunc) Redirecter {
-	return Redirecter{Path: path, Apply: apply}
 }

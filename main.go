@@ -26,30 +26,36 @@ const (
 
 const mode = debug
 
+func LoadFacebookData() (result facebooker.Data) {
+	err := configurations.Load("facebook", &result)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+func LoadGoogleData() (result googleplusser.Data) {
+	err := configurations.Load("google", &result)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
 func main() {
 
 	//set up the models
-	models.SetUp() //can't happen during models's init, because it needs to wait until each of the models has initialized
+	model.SetUp() //can't happen during models's init, because it needs to wait until each of the models has initialized
 
 	//set up the interceptor routes
 	cept := interceptor.NewInterceptor()
 
 	//facebook
-	var facebookData facebooker.Data
-	err := configurations.Load("facebook", &facebookData)
-	if err != nil {
-		panic(err)
-	}
-	facebooker.SetConfiguration(facebookData)
+	facebooker.SetConfiguration(LoadFacebookData())
 	oauther.RegisterOauth(cept, facebooker.Default, login.CreateHandler(facebooker.Default))
 
 	//google plus
-	var googleData googleplusser.Data
-	err = configurations.Load("google", &googleData)
-	if err != nil {
-		panic(err)
-	}
-	googleplusser.SetConfiguration(googleData)
+	googleplusser.SetConfiguration(LoadGoogleData())
 	oauther.RegisterOauth(cept, googleplusser.Default, login.CreateHandler(googleplusser.Default))
 
 	//logging out
@@ -90,7 +96,7 @@ func main() {
 
 	//We're ready to go!
 	//run each request through the rack!
-	err = rack.Run(rack.HttpConnection(site), rack.Up)
+	err := rack.Run(rack.HttpConnection(site), rack.Up)
 	if err != nil {
 		fmt.Print("Error: " + err.Error())
 	}

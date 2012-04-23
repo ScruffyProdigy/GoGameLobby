@@ -3,82 +3,85 @@ package controller
 import (
 	"../login"
 	"../models/lodge"
+	"../models"
 	"../rack"
 	"../redirecter"
 	"../routes"
 	"../session"
-	"../templater"
 	"net/http"
 )
 
-var L = lodge.L
 
-func init() {
-	rest := map[string]rack.Middleware{
-		"index": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-			w := rack.BlankResponse()
+type LodgeController struct {
+	L *lodge.LodgeCollection
+}
 
-			var lodges []lodge.Lodge
-			err := L.AllLodges(&lodges)
-			if err != nil {
-				panic(err)
-			}
+func (LodgeController) RouteName() string {
+	return "lodges"
+}
 
-			vars["Lodges"] = lodges
-			vars["Title"] = "Mason Lodges"
+func (LodgeController) VarName() string {
+	return "Lodge"
+}
 
-			templater.Get("lodges/index").Execute(w, vars)
-			return w.Results()
-		}),
-		"show": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-			w := rack.BlankResponse()
+func (this LodgeController) Indexer(s string) (interface{},bool) {
+	result := this.L.LodgeFromName(s)
+	return result,result!=nil
+}
 
-			l := vars["Lodge"].(*lodge.Lodge)
-			vars["Title"] = l.Name
 
-			templater.Get("lodges/show").Execute(w, vars)
-			return w.Results()
-		}),
-		"new": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-			w := rack.BlankResponse()
-
-			vars["Title"] = "Create a Mason Lodge"
-
-			templater.Get("lodges/new").Execute(w, vars)
-			return w.Results()
-		}),
-		"create": rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-			w := rack.BlankResponse()
-
-			err := r.ParseForm()
-			if err != nil {
-				panic(err)
-			}
-
-			var l lodge.Lodge
-			defer func() {
-				rec := recover()
-				if rec != nil {
-					reroute := redirecter.Go("/lodges/new",
-						session.AddFlash("You fucked something up, please try again"))
-					status, header, message = reroute.Run(r, vars, next)
-				}
-			}()
-
-			l.Name = r.FormValue("Lodge[Name]")
-			l.Masons = []string{vars.Apply(login.CurrentUser()).(string)}
-
-			err = L.AddLodge(&l)
-			if err != nil {
-				panic(err)
-			}
-
-			http.Redirect(w, r, l.Url(), http.StatusFound)
-			return w.Results()
-		}),
+func (this LodgeController) Index(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	var lodges []lodge.Lodge
+	err := this.L.AllLodges(&lodges)
+	if err != nil {
+		panic(err)
 	}
 
-	lodgeResource := routes.Resource(L, rest)
+	vars["Lodges"] = lodges
+	vars["Title"] = "Mason Lodges"
 
-	routes.Root.AddRoute(lodgeResource.Collection)
+	return next()
+}
+
+func (this LodgeController) Show(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	l := vars["Lodge"].(*lodge.Lodge)
+	
+	vars["Title"] = l.Name
+
+	return next()
+}
+
+func (this LodgeController) New(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+
+	vars["Title"] = "Create a Mason Lodge"
+
+	return next()
+}
+
+func (this LodgeController) Create(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	err := r.ParseForm()
+	if err != nil {
+		panic(err)
+	}
+
+	var l lodge.Lodge
+	defer func() {
+		rec := recover()
+		if rec != nil {
+			status,header,message = redirecter.Go(r,vars,"/lodges/new",
+				session.AddFlash("You fucked something up, please try again"))
+		}
+	}()
+
+	l.Name = r.FormValue("Lodge[Name]")
+	l.AddMason(login.CurrentUser(vars))
+	
+	model.Save(&l)
+
+	return redirecter.Go(r,vars,l.Url())
+}
+
+
+func init() {
+	routes.Resource(LodgeController{lodge.L}).AddTo(routes.Root)
 }

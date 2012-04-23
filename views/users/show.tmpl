@@ -1,11 +1,11 @@
 <h1>{{.User.ClashTag}}</h1>
 <p>{{.User.Points}} points</p>
-{{if .Lodges}}
+{{if .User.Lodges}}
 <section class="lodges"><header><h1>Lodges</h1></header>
 <p>You are a Mason in the following lodges:</p>
 <ul>
-{{range .Lodges}}
-	<li><a href="/lodges/{{.Name}}">{{.Name}}</a></li>
+{{range .User.Lodges}}
+	<li><a href="/lodges/{{.}}">{{.}}</a></li>
 {{end}}
 </ul>
 </section>
