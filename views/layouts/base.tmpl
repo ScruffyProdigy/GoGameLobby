@@ -14,6 +14,11 @@
 				</ul>
 			{{end}}
 		</nav>
+		<ul>
+		{{range .flashes}}
+		<li>{{.}}</li>
+		{{end}}
+		</ul>
 		{{.Body}}
 	</body>
 </html>

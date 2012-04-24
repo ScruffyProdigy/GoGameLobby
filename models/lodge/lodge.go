@@ -2,11 +2,11 @@ package lodge
 
 import (
 	"../"
-	"launchpad.net/mgo"
-	"launchpad.net/mgo/bson"
+	"../../log"
 	"../user"
 	"errors"
-	"../../log"
+	"launchpad.net/mgo"
+	"launchpad.net/mgo/bson"
 )
 
 var L = new(LodgeCollection)
@@ -22,25 +22,24 @@ func init() {
 */
 
 type Lodge struct {
-	ID	bson.ObjectId `_id`
+	ID     bson.ObjectId `_id`
 	Name   string
 	Masons []string
-	Games	[]bson.ObjectId
+	Games  []bson.ObjectId
 }
 
 //		Utility Functions 
-		
-		
+
 func (this Lodge) Url() string {
-	return "/lodges/" + this.Name
+	return "/lodges/" + this.Name + "/"
 }
 
 func (this *Lodge) AddMason(u *user.User) {
-	this.Masons = append(this.Masons,u.ClashTag)
+	this.Masons = append(this.Masons, u.ClashTag)
 	if !this.IsNew() {
 		model.Save(this)
 	}
-	u.Lodges = append(u.Lodges,this.Name)
+	u.Lodges = append(u.Lodges, this.Name)
 	if !u.IsNew() {
 		log.Debug("User is not new; saving User")
 		model.Save(u)
@@ -49,12 +48,11 @@ func (this *Lodge) AddMason(u *user.User) {
 
 //		Interface Methods
 
-
 func (this *Lodge) Validate() (errs []error) {
 	//Name should be unique
 	other := L.LodgeFromName(this.Name)
 	if other != nil && other.ID != this.ID {
-		errs = append(errs,errors.New("Lodge Name Should Be Unique"))
+		errs = append(errs, errors.New("Lodge Name Should Be Unique"))
 	}
 	return
 }
@@ -87,7 +85,6 @@ type LodgeCollection struct {
 
 //	Setup Functions
 
-
 func (*LodgeCollection) CollectionName() string {
 	return "lodges"
 }
@@ -113,7 +110,6 @@ func (this *LodgeCollection) GetIndices() []mgo.Index {
 }
 
 //	Queries
-
 
 func (this *LodgeCollection) LodgeFromName(s string) *Lodge {
 	var result Lodge

@@ -1,6 +1,7 @@
 package redirecter
 
 import (
+	"../log"
 	"../rack"
 	"net/http"
 )
@@ -11,10 +12,12 @@ type Redirecter struct {
 }
 
 func (this Redirecter) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return Go(r,vars,this.Path,this.Apply...)
+	return Go(r, vars, this.Path, this.Apply...)
 }
 
-func Go(r *http.Request, vars rack.Vars,path string, apply ...rack.VarFunc) (status int, header http.Header, message []byte) {
+func Go(r *http.Request, vars rack.Vars, path string, apply ...rack.VarFunc) (status int, header http.Header, message []byte) {
+	log.Info("Redirecting to " + path)
+
 	for _, a := range apply {
 		vars.Apply(a)
 	}

@@ -2,6 +2,14 @@
 <p>This Mason Lodge has the following members:</p>
 <ul>
 {{range .Lodge.Masons}}
-<li><a href="/users/{{.}}">{{.}}</a></li>
+<li><a href="/users/{{.}}/">{{.}}</a></li>
 {{end}}
 </ul>
+<section class="New Project"><header><h1>Start a Project!</h1></header>
+<p>Lets make a Mason Lodge!</p>
+<form action="/lodges/{{.Lodge.Name}}/projects/" method="post">
+	<label for="game_name">Your new game will need a name!:</label>
+	<input id="game_name" name="Game[Name]" size="30" type="text" /><br />
+	<input name="commit" type="submit" value="Start Project">
+</form>
+</section>

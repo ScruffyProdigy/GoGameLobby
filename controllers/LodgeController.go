@@ -2,15 +2,14 @@ package controller
 
 import (
 	"../login"
-	"../models/lodge"
 	"../models"
+	"../models/lodge"
 	"../rack"
 	"../redirecter"
 	"../routes"
 	"../session"
 	"net/http"
 )
-
 
 type LodgeController struct {
 	L *lodge.LodgeCollection
@@ -24,11 +23,10 @@ func (LodgeController) VarName() string {
 	return "Lodge"
 }
 
-func (this LodgeController) Indexer(s string) (interface{},bool) {
+func (this LodgeController) Indexer(s string, vars rack.Vars) (interface{}, bool) {
 	result := this.L.LodgeFromName(s)
-	return result,result!=nil
+	return result, result != nil
 }
-
 
 func (this LodgeController) Index(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 	var lodges []lodge.Lodge
@@ -45,7 +43,7 @@ func (this LodgeController) Index(r *http.Request, vars rack.Vars, next rack.Nex
 
 func (this LodgeController) Show(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
 	l := vars["Lodge"].(*lodge.Lodge)
-	
+
 	vars["Title"] = l.Name
 
 	return next()
@@ -59,29 +57,31 @@ func (this LodgeController) New(r *http.Request, vars rack.Vars, next rack.NextF
 }
 
 func (this LodgeController) Create(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	err := r.ParseForm()
-	if err != nil {
-		panic(err)
-	}
-
-	var l lodge.Lodge
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			status,header,message = redirecter.Go(r,vars,"/lodges/new",
+			status, header, message = redirecter.Go(r, vars, "/lodges/new",
 				session.AddFlash("You fucked something up, please try again"))
 		}
 	}()
 
+	var l lodge.Lodge
+
 	l.Name = r.FormValue("Lodge[Name]")
 	l.AddMason(login.CurrentUser(vars))
-	
-	model.Save(&l)
 
-	return redirecter.Go(r,vars,l.Url())
+	errs := model.Save(&l)
+	if errs != nil {
+		panic(errs)
+	}
+
+	vars["Lodge"] = &l
+	return next()
 }
 
+var LodgeRoute *routes.ResourceRouter
 
 func init() {
-	routes.Resource(LodgeController{lodge.L}).AddTo(routes.Root)
+	LodgeRoute = routes.Resource(LodgeController{lodge.L})
+	LodgeRoute.AddTo(routes.Root)
 }

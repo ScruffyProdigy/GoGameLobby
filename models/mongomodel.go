@@ -2,9 +2,9 @@ package model
 
 import (
 	"../log"
+	"errors"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
-	"errors"
 )
 
 var db *mgo.Database
@@ -22,7 +22,7 @@ func Save(m Model) []error {
 	if errs != nil {
 		return errs
 	}
-	
+
 	coll := m.Collection()
 	if coll == nil {
 		return []error{errors.New("Cannot Get Collection")}
@@ -36,7 +36,7 @@ func Save(m Model) []error {
 		m.SetID(bson.NewObjectId())
 		err = c.Insert(m)
 	} else {
-		err = c.Update(bson.M{"_id":m.GetID()},m)
+		err = c.Update(bson.M{"_id": m.GetID()}, m)
 	}
 	if err != nil {
 		return []error{err}
@@ -60,8 +60,8 @@ func RegisterModel(model Collection) {
 }
 
 func SetUp() {
-	for name,model := range(modelList) {
-		for _,index := range(model.GetIndices()) {
+	for name, model := range modelList {
+		for _, index := range model.GetIndices() {
 			db.C(name).EnsureIndex(index)
 		}
 	}

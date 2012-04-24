@@ -19,15 +19,17 @@ func init() {
 */
 
 type Game struct {
-	ID bson.ObjectId `_id`
+	ID        bson.ObjectId `_id`
+	Name      string        `name`
+	Published bool          `published`
+	Lodge     string        `lodge`
 }
 
 //		Interface Methods
 
-
 func (this *Game) Validate() []error {
 	return nil
-}	
+}
 
 func (this *Game) IsNew() bool {
 	return !this.ID.Valid()
@@ -44,8 +46,14 @@ func (this *Game) GetID() bson.ObjectId {
 func (this *Game) SetID(id bson.ObjectId) {
 	this.ID = id
 }
-//		Utility Functions
 
+//		Utility Functions
+func (this *Game) Url() string {
+	if this.Published {
+		return "/games/" + this.Name + "/"
+	}
+	return "/lodges/" + this.Lodge + "/projects/" + this.Name + "/"
+}
 
 /*
 
@@ -59,7 +67,6 @@ type GameCollection struct {
 
 //		Setup Functions
 
-
 func (*GameCollection) CollectionName() string {
 	return "games"
 }
@@ -68,15 +75,64 @@ func (this *GameCollection) SetCollection(collection *mgo.Collection) {
 	this.collection = collection
 }
 
-func (this *GameCollection) GetCollection() *mgo.Collection{
+func (this *GameCollection) GetCollection() *mgo.Collection {
 	return this.collection
 }
 
 func (this *GameCollection) GetIndices() []mgo.Index {
-	return []mgo.Index{}
+	return []mgo.Index{
+		{
+			Key:    []string{"name"},
+			Unique: true,
+		},
+		{
+			Key:    []string{"published", "name"},
+			Unique: true,
+		},
+		{
+			Key:    []string{"lodge", "name"},
+			Unique: true,
+		},
+	}
 }
-
 
 //		Queries
 
+func (this *GameCollection) GameFromName(name string) *Game {
+	var result Game
 
+	query := bson.M{"name": name}
+
+	err := this.collection.Find(query).One(&result)
+	if err != nil {
+		return nil
+	}
+
+	return &result
+}
+
+func (this *GameCollection) GameFromLodgeAndName(lodge, name string) *Game {
+	var result Game
+
+	query := bson.M{"lodge": lodge, "name": name}
+
+	err := this.collection.Find(query).One(&result)
+	if err != nil {
+		return nil
+	}
+
+	return &result
+}
+
+func (this *GameCollection) PublishedGameFromName(name string) *Game {
+	var result Game
+
+	query := bson.M{"published": true, "name": name}
+
+	err := this.collection.Find(query).One(&result)
+	if err != nil {
+		return nil
+	}
+
+	return &result
+}

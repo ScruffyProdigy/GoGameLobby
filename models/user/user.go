@@ -19,13 +19,12 @@ func init() {
 
 */
 
-
 type User struct {
-	ID	           bson.ObjectId         `_id`
+	ID             bson.ObjectId `_id`
 	ClashTag       string
 	Points         int
 	Authorizations []AuthorizationData
-	Lodges			[]string
+	Lodges         []string
 }
 
 type AuthorizationData struct {
@@ -36,13 +35,11 @@ type AuthorizationData struct {
 
 //	Utility Functions
 
-
 func (this User) Url() string {
-	return "/users/" + this.ClashTag
+	return "/users/" + this.ClashTag + "/"
 }
 
 //	Interface Methods
-	
 
 func (this *User) Validate() (err []error) {
 	return nil
@@ -76,7 +73,6 @@ type UserCollection struct {
 
 //	Setup Functions
 
-
 func (*UserCollection) CollectionName() string {
 	return "users"
 }
@@ -103,7 +99,6 @@ func (this *UserCollection) GetIndices() []mgo.Index {
 }
 
 //	Queries
-
 
 func (this *UserCollection) UserFromClashTag(s string) *User {
 	var result User

@@ -14,9 +14,8 @@ type NewWrapper struct {
 }
 
 func (this NewWrapper) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return this.New(r,vars,next)
+	return this.New(r, vars, next)
 }
-
 
 type Creater interface {
 	Create(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte)
@@ -27,7 +26,7 @@ type CreateWrapper struct {
 }
 
 func (this CreateWrapper) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return this.Create(r,vars,next)
+	return this.Create(r, vars, next)
 }
 
 type Indexer interface {
@@ -39,7 +38,7 @@ type IndexWrapper struct {
 }
 
 func (this IndexWrapper) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return this.Index(r,vars,next)
+	return this.Index(r, vars, next)
 }
 
 type Shower interface {
@@ -51,7 +50,7 @@ type ShowWrapper struct {
 }
 
 func (this ShowWrapper) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return this.Show(r,vars,next)
+	return this.Show(r, vars, next)
 }
 
 type Editer interface {
@@ -63,7 +62,7 @@ type EditWrapper struct {
 }
 
 func (this EditWrapper) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return this.Edit(r,vars,next)
+	return this.Edit(r, vars, next)
 }
 
 type Updater interface {
@@ -75,7 +74,7 @@ type UpdateWrapper struct {
 }
 
 func (this UpdateWrapper) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return this.Update(r,vars,next)
+	return this.Update(r, vars, next)
 }
 
 type Deleter interface {
@@ -87,36 +86,36 @@ type DeleteWrapper struct {
 }
 
 func (this DeleteWrapper) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return this.Delete(r,vars,next)
+	return this.Delete(r, vars, next)
 }
 
 func GetRestMap(c interface{}) (restfuncs map[string]rack.Middleware) {
 	restfuncs = make(map[string]rack.Middleware)
-	mIndex,hasIndex := c.(Indexer)
+	mIndex, hasIndex := c.(Indexer)
 	if hasIndex {
 		restfuncs["index"] = IndexWrapper{mIndex}
 	}
-	mCreate,hasCreate := c.(Creater)
+	mCreate, hasCreate := c.(Creater)
 	if hasCreate {
 		restfuncs["create"] = CreateWrapper{mCreate}
 	}
-	mNew,hasNew := c.(Newer)
+	mNew, hasNew := c.(Newer)
 	if hasNew {
 		restfuncs["new"] = NewWrapper{mNew}
 	}
-	mShow,hasShow := c.(Shower)
+	mShow, hasShow := c.(Shower)
 	if hasShow {
 		restfuncs["show"] = ShowWrapper{mShow}
 	}
-	mEdit,hasEdit := c.(Editer)
+	mEdit, hasEdit := c.(Editer)
 	if hasEdit {
 		restfuncs["edit"] = EditWrapper{mEdit}
 	}
-	mUpdate,hasUpdate := c.(Updater)
+	mUpdate, hasUpdate := c.(Updater)
 	if hasUpdate {
 		restfuncs["update"] = UpdateWrapper{mUpdate}
 	}
-	mDelete,hasDelete := c.(Deleter)
+	mDelete, hasDelete := c.(Deleter)
 	if hasDelete {
 		restfuncs["delete"] = DeleteWrapper{mDelete}
 	}
