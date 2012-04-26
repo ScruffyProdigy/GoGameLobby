@@ -8,11 +8,10 @@ import (
 )
 
 func init() {
-	controller.RegisterController(&ProjectController{g: game.G}).AddAsSubresource(Lodge)
+	controller.RegisterController(&ProjectController{}).AddAsSubresource(Lodge)
 }
 
 type ProjectController struct {
-	g *game.GameCollection
 	controller.Heart
 }
 
@@ -22,7 +21,7 @@ func (this ProjectController) Indexer(query string) (interface{}, bool) {
 		panic("Cannot find lodge")
 	}
 
-	result := this.g.GameFromLodgeAndName(l.Name, query)
+	result := game.G.GameFromLodgeAndName(l.Name, query)
 	return result, result != nil
 }
 

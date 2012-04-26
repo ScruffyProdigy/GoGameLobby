@@ -8,7 +8,6 @@ import (
 )
 
 type LodgeController struct {
-	l *lodge.LodgeCollection
 	controller.Heart
 }
 
@@ -21,13 +20,13 @@ func (LodgeController) VarName() string {
 }
 
 func (this LodgeController) Indexer(s string) (interface{}, bool) {
-	result := this.l.LodgeFromName(s)
+	result := lodge.L.LodgeFromName(s)
 	return result, result != nil
 }
 
 func (this LodgeController) Index() controller.Response {
 	var lodges []lodge.Lodge
-	err := this.l.AllLodges(&lodges)
+	err := lodge.L.AllLodges(&lodges)
 	if err != nil {
 		panic(err)
 	}
@@ -81,6 +80,6 @@ func (this LodgeController) Create() (response controller.Response) {
 var Lodge *controller.ControllerShell
 
 func init() {
-	Lodge = controller.RegisterController(&LodgeController{l: lodge.L})
+	Lodge = controller.RegisterController(&LodgeController{})
 	Lodge.AddToRoot()
 }

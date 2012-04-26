@@ -9,7 +9,6 @@ import (
 )
 
 type UserController struct {
-	u *user.UserCollection
 	controller.Heart
 }
 
@@ -22,13 +21,13 @@ func (UserController) VarName() string {
 }
 
 func (this UserController) Indexer(s string) (interface{}, bool) {
-	result := this.u.UserFromClashTag(s)
+	result := user.U.UserFromClashTag(s)
 	return result, result != nil
 }
 
 func (this UserController) Index() controller.Response {
 	var users []user.User
-	err := this.u.AllUsers(&users)
+	err := user.U.AllUsers(&users)
 	if err != nil {
 		panic(err)
 	}
@@ -82,14 +81,14 @@ func (this UserController) Create() (response controller.Response) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			response = controller.FromRack(login.NewUserForm(authData).Run(this.GetRackFuncVars()))
+			this.AddFlash("I'm sorry, but there was an error with your form")
+			response = this.MiddlewareResponse(login.NewUserForm(authData))
 		}
 	}()
 
 	u := user.NewUser()
 
 	u.ClashTag = this.GetFormValue("User[ClashTag]")
-
 	u.Authorizations = []user.AuthorizationData{authData}
 
 	errs := model.Save(u)
@@ -102,5 +101,5 @@ func (this UserController) Create() (response controller.Response) {
 }
 
 func init() {
-	controller.RegisterController(&UserController{u: user.U}).AddToRoot()
+	controller.RegisterController(&UserController{}).AddToRoot()
 }

@@ -53,6 +53,12 @@ func (this Heart) RespondWith(object interface{}) Response {
 	return this.DefaultResponse()
 }
 
+// if you have a piece of middleware that you want to respond with
+// return this instead of DefaultResponse along with the middleware you want to run
+func (this Heart) MiddlewareResponse(m rack.Middleware) Response {
+	return FromRack(m.Run(this.GetRackFuncVars()))
+}
+
 // if things don't go according to plan, you can redirect somewhere else
 // return this instead of DefaultResponse along with where you want to redirect to
 func (this Heart) Redirection(url string) Response {
