@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	controller.RegisterController(&ProjectController{g:game.G}).AddAsSubresource(Lodge)
+	controller.RegisterController(&ProjectController{g: game.G}).AddAsSubresource(Lodge)
 }
 
 type ProjectController struct {
@@ -22,7 +22,7 @@ func (this ProjectController) Indexer(query string) (interface{}, bool) {
 	if !isLodge {
 		panic("Cannot find lodge")
 	}
-	
+
 	result := this.g.GameFromLodgeAndName(l.Name, query)
 	return result, result != nil
 }
@@ -41,7 +41,7 @@ func (this ProjectController) Show() controller.Response {
 		panic("Can't find Game")
 	}
 
-	this.Set("Title",g.Name)
+	this.Set("Title", g.Name)
 	return this.DefaultResponse()
 }
 
@@ -54,7 +54,7 @@ func (this ProjectController) Create() (response controller.Response) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
-		 	response = this.Redirection(l.Url())
+			response = this.Redirection(l.Url())
 			this.AddFlash("You fucked something up, please try again")
 
 		}

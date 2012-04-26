@@ -33,26 +33,26 @@ func (this LodgeController) Index() controller.Response {
 		panic(err)
 	}
 
-	this.Set("Lodges",lodges)
-	this.Set("Title","Mason Lodges")
+	this.Set("Lodges", lodges)
+	this.Set("Title", "Mason Lodges")
 
 	return this.DefaultResponse()
 }
 
 func (this LodgeController) Show() controller.Response {
-	l,isLodge := this.Get("Lodge").(*lodge.Lodge)
+	l, isLodge := this.Get("Lodge").(*lodge.Lodge)
 	if !isLodge {
 		panic("Can't find lodge")
 	}
 
-	this.Set("Title",l.Name)
+	this.Set("Title", l.Name)
 
 	return this.DefaultResponse()
 }
 
 func (this LodgeController) New() controller.Response {
 
-	this.Set("Title","Create a Mason Lodge")
+	this.Set("Title", "Create a Mason Lodge")
 
 	return this.DefaultResponse()
 }
@@ -82,6 +82,6 @@ func (this LodgeController) Create() (response controller.Response) {
 var Lodge *controller.ControllerShell
 
 func init() {
-	Lodge = controller.RegisterController(&LodgeController{l:lodge.L})
+	Lodge = controller.RegisterController(&LodgeController{l: lodge.L})
 	Lodge.AddToRoot()
 }

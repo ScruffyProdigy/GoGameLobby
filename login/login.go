@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-
 type NewUserForm user.AuthorizationData
 
 func (this NewUserForm) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {

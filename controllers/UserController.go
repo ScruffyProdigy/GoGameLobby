@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"../controller"
+	"../login"
 	"../models"
 	"../models/user"
-	"../login"
 	"../session"
 	"strconv"
 	"time"
@@ -35,8 +35,8 @@ func (this UserController) Index() controller.Response {
 		panic(err)
 	}
 
-	this.Set("Users",users)
-	this.Set("Title","Users")
+	this.Set("Users", users)
+	this.Set("Title", "Users")
 
 	return this.DefaultResponse()
 }
@@ -44,7 +44,7 @@ func (this UserController) Index() controller.Response {
 func (this UserController) Show() controller.Response {
 	u := this.Get("User").(*user.User)
 
-	this.Set("Title",u.ClashTag)
+	this.Set("Title", u.ClashTag)
 
 	return this.DefaultResponse()
 }
@@ -56,13 +56,13 @@ func (this UserController) New() controller.Response {
 		return controller.NotAuthorized()
 	}
 
-	this.Set("authorization",authorization)
-	this.Set("access",this.Session().Clear("access"))
-	this.Set("refresh",this.Session().Clear("refresh"))
-	this.Set("expiry",this.Session().Clear("expiry"))
-	this.Set("auth_id",this.Session().Clear("auth_id"))
-	
-	this.Set("Title","New User")
+	this.Set("authorization", authorization)
+	this.Set("access", this.Session().Clear("access"))
+	this.Set("refresh", this.Session().Clear("refresh"))
+	this.Set("expiry", this.Session().Clear("expiry"))
+	this.Set("auth_id", this.Session().Clear("auth_id"))
+
+	this.Set("Title", "New User")
 
 	return this.DefaultResponse()
 }
@@ -104,5 +104,5 @@ func (this UserController) Create() (response controller.Response) {
 }
 
 func init() {
-	controller.RegisterController(&UserController{u:user.U}).AddToRoot()
+	controller.RegisterController(&UserController{u: user.U}).AddToRoot()
 }

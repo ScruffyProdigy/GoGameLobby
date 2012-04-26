@@ -2,24 +2,24 @@ package controller
 
 import (
 	"../rack"
-	"net/http"
 	"../redirecter"
-	"../templater"
 	"../session"
+	"../templater"
+	"net/http"
 )
 
 // When Creating a Controller, you MUST put an anonymous controller.Heart into your controller (unless you really know what you're doing)
 // Not only do some of the functions require some a couple of the default methods
 type Heart struct {
-	m ModelMap
-	R *http.Request
+	m    ModelMap
+	R    *http.Request
 	Vars rack.Vars
 	Next rack.NextFunc
 }
 
 // this is how we hide the rack variables from the controllers who don't really care so much about these
 // they are later accessible in case you need them, but for the most part, you can just ignore these
-func (this *Heart) SetRackFuncVars(m ModelMap,r *http.Request, vars rack.Vars) {
+func (this *Heart) SetRackFuncVars(m ModelMap, r *http.Request, vars rack.Vars) {
 	this.m = m
 	this.R = r
 	this.Vars = vars
@@ -34,7 +34,7 @@ func (this *Heart) SetDefaultResponse(next rack.NextFunc) {
 
 // if you are calling another Rack Middleware, you should call this function to get the variables it will need to run
 func (this Heart) GetRackFuncVars() (r *http.Request, vars rack.Vars, next rack.NextFunc) {
-	return this.R,this.Vars,this.Next
+	return this.R, this.Vars, this.Next
 }
 
 // this should be the return value for most of your control function
@@ -55,14 +55,14 @@ func (this Heart) RespondWith(object interface{}) Response {
 
 // if things don't go according to plan, you can redirect somewhere else
 // return this instead of DefaultResponse along with where you want to redirect to
-func (this Heart) Redirection(url string) Response{
-	return FromRack(redirecter.Go(this.R,this.Vars,url))
+func (this Heart) Redirection(url string) Response {
+	return FromRack(redirecter.Go(this.R, this.Vars, url))
 }
 
 // use this if you want to render something other than the default template
 // return this instead of DefaultResponse along with the template you want to render
-func (this Heart) Rendering(tmpl string) Response{
-	return FromRack(templater.Render(tmpl,this.Vars))
+func (this Heart) Rendering(tmpl string) Response {
+	return FromRack(templater.Render(tmpl, this.Vars))
 }
 
 // this will get the form value from the form that was passed in

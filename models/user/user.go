@@ -33,7 +33,7 @@ type AuthorizationData struct {
 	Token         oauth.Token
 }
 
-func NewUser() User * {
+func NewUser() *User {
 	return new(User)
 }
 
