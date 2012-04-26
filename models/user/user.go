@@ -33,6 +33,10 @@ type AuthorizationData struct {
 	Token         oauth.Token
 }
 
+func NewUser() User * {
+	return new(User)
+}
+
 //	Utility Functions
 
 func (this User) Url() string {

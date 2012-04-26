@@ -14,7 +14,7 @@ type Signaler interface {
 type Router struct {
 	subroutes []*Router
 	Action    rack.Middleware
-	routing   Signaler
+	Routing   Signaler
 }
 
 func NewRouter() *Router {
@@ -24,11 +24,11 @@ func NewRouter() *Router {
 }
 
 func (this *Router) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	if vars.Apply(currentSection) == "/" {
+	if vars.Apply(CurrentSection) == "/" {
 		return this.Action.Run(r, vars, next)
 	}
 	for _, subroute := range this.subroutes {
-		if subroute.routing.Run(r, vars) {
+		if subroute.Routing.Run(r, vars) {
 			vars.Apply(nextSection)
 			return subroute.Run(r, vars, next)
 		}

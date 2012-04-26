@@ -30,12 +30,12 @@ var Parser = rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc)
 	return next()
 })
 
-func currentSection(vars rack.Vars) interface{} {
+func CurrentSection(vars rack.Vars) interface{} {
 	return vars["parsedRoute"].([]string)[vars["currentSection"].(int)]
 }
 
 func nextSection(vars rack.Vars) (result interface{}) {
-	result = vars.Apply(currentSection)
+	result = vars.Apply(CurrentSection)
 	vars["currentSection"] = vars["currentSection"].(int) + 1
 	return
 }

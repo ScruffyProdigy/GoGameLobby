@@ -25,6 +25,10 @@ type Game struct {
 	Lodge     string        `lodge`
 }
 
+func NewGame() *Game {
+	return new(Game)
+}
+
 //		Interface Methods
 
 func (this *Game) Validate() []error {

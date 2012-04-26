@@ -11,6 +11,19 @@ import (
 	"time"
 )
 
+
+type NewUserForm user.AuthorizationData
+
+func (this NewUserForm) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+	return redirecter.Go(r, vars, "/users/new",
+		session.Set("authorization", this.Authorization),
+		session.Set("auth_id", this.Id),
+		session.Set("access", this.Token.AccessToken),
+		session.Set("refresh", this.Token.RefreshToken),
+		session.Set("expiry", this.Token.Expiry.Format(time.RFC1123)),
+	)
+}
+
 type Authorizer interface {
 	oauther.Oauther
 	GetName() string
@@ -31,22 +44,6 @@ func CreateHandler(a Authorizer) *TokenHandler {
 func (this *TokenHandler) HandleToken(tok *oauth.Token) rack.Middleware {
 	this.tok = tok
 	return this
-}
-
-type NewUserForm struct {
-	Authorization, ID string
-	Tok               *oauth.Token
-}
-
-func (this NewUserForm) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return redirecter.Go(r, vars, "/users/new",
-		session.Set("authorization", this.Authorization),
-		session.Set("auth_id", this.ID),
-		session.Set("access", this.Tok.AccessToken),
-		session.Set("refresh", this.Tok.RefreshToken),
-		session.Set("expiry", this.Tok.Expiry.Format(time.RFC1123)),
-		session.AddFlash("You fucked something up, please try again"),
-	)
 }
 
 func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
@@ -73,7 +70,7 @@ func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.NextFunc
 	}
 
 	//otherwise, have them fill out the New User Form!
-	return NewUserForm{Tok: this.tok, Authorization: authorization, ID: id}.Run(r, vars, next)
+	return NewUserForm{Token: *this.tok, Authorization: authorization, Id: id}.Run(r, vars, next)
 }
 
 func CurrentUser(vars rack.Vars) *user.User {

@@ -1,21 +1,18 @@
-package controller
+package controllers
 
 import (
-	"../log"
-	"../login"
+	"../controller"
 	"../models"
 	"../models/user"
-	"../rack"
-	"../routes"
+	"../login"
 	"../session"
-	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 )
 
 type UserController struct {
-	U *user.UserCollection
+	u *user.UserCollection
+	controller.Heart
 }
 
 func (UserController) RouteName() string {
@@ -26,62 +23,60 @@ func (UserController) VarName() string {
 	return "User"
 }
 
-func (this UserController) Indexer(s string, vars rack.Vars) (interface{}, bool) {
-	result := this.U.UserFromClashTag(s)
+func (this UserController) Indexer(s string) (interface{}, bool) {
+	result := this.u.UserFromClashTag(s)
 	return result, result != nil
 }
 
-func (this UserController) Index(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+func (this UserController) Index() controller.Response {
 	var users []user.User
-	err := this.U.AllUsers(&users)
+	err := this.u.AllUsers(&users)
 	if err != nil {
 		panic(err)
 	}
 
-	vars["Users"] = users
-	vars["Title"] = "Users"
+	this.Set("Users",users)
+	this.Set("Title","Users")
 
-	return next()
+	return this.DefaultResponse()
 }
 
-func (this UserController) Show(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	u := vars["User"].(*user.User)
+func (this UserController) Show() controller.Response {
+	u := this.Get("User").(*user.User)
 
-	fmt.Fprint(log.DebugLog(), "\n Debug - looking at User:", u)
+	this.Set("Title",u.ClashTag)
 
-	vars["Title"] = u.ClashTag
-
-	return next()
+	return this.DefaultResponse()
 }
 
-func (this UserController) New(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	vars["Title"] = "New User"
+func (this UserController) New() controller.Response {
 
-	authorization, isString := vars.Apply(session.Clear("authorization")).(string)
+	authorization, isString := this.Session().Clear("authorization").(string)
 	if !isString {
-		log.Warning("No Authorization found")
-		return http.StatusUnauthorized, make(http.Header), []byte("")
+		return controller.NotAuthorized()
 	}
 
-	vars["authorization"] = authorization
-	vars["access"] = vars.Apply(session.Clear("access"))
-	vars["refresh"] = vars.Apply(session.Clear("refresh"))
-	vars["expiry"] = vars.Apply(session.Clear("expiry"))
-	vars["auth_id"] = vars.Apply(session.Clear("auth_id"))
+	this.Set("authorization",authorization)
+	this.Set("access",this.Session().Clear("access"))
+	this.Set("refresh",this.Session().Clear("refresh"))
+	this.Set("expiry",this.Session().Clear("expiry"))
+	this.Set("auth_id",this.Session().Clear("auth_id"))
+	
+	this.Set("Title","New User")
 
-	return next()
+	return this.DefaultResponse()
 }
 
-func (this UserController) Create(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+func (this UserController) Create() (response controller.Response) {
 	var authData user.AuthorizationData
 	var err error
 
 	//would be nice to replace this with some kind of reflection based reader
-	authData.Authorization = r.FormValue("User[Authorization][Type]")
-	authData.Id = r.FormValue("User[Authorization][ID]")
-	authData.Token.AccessToken = r.FormValue("User[Authorization][Access]")
-	authData.Token.RefreshToken = r.FormValue("User[Authorization][Refresh]")
-	authData.Token.Expiry, err = time.Parse(time.RFC1123, r.FormValue("User[Authorization][Expiry]"))
+	authData.Authorization = this.GetFormValue("User[Authorization][Type]")
+	authData.Id = this.GetFormValue("User[Authorization][ID]")
+	authData.Token.AccessToken = this.GetFormValue("User[Authorization][Access]")
+	authData.Token.RefreshToken = this.GetFormValue("User[Authorization][Refresh]")
+	authData.Token.Expiry, err = time.Parse(time.RFC1123, this.GetFormValue("User[Authorization][Expiry]"))
 	if err != nil {
 		panic("Can't Convert Expiry to Time")
 	}
@@ -89,30 +84,25 @@ func (this UserController) Create(r *http.Request, vars rack.Vars, next rack.Nex
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			status, header, message = login.NewUserForm{Authorization: authData.Authorization, ID: authData.Id, Tok: &authData.Token}.Run(r, vars, next)
+			response = controller.FromRack(login.NewUserForm(authData).Run(this.GetRackFuncVars()))
 		}
 	}()
 
-	var u user.User
+	var u user.User = user.NewUser()
 
-	u.ClashTag = r.FormValue("User[ClashTag]")
-	u.Points, err = strconv.Atoi(r.FormValue("User[Points]"))
-	if err != nil {
-		panic(err)
-	}
+	u.ClashTag = this.GetFormValue("User[ClashTag]")
 
 	u.Authorizations = []user.AuthorizationData{authData}
 
-	errs := model.Save(&u)
+	errs := model.Save(u)
 	if errs != nil {
 		panic(errs)
 	}
 
-	vars["User"] = &u
-	vars.Apply(login.LogIn(&u))
-	return next()
+	this.Apply(login.LogIn(u))
+	return this.RespondWith(u)
 }
 
 func init() {
-	routes.Resource(UserController{user.U}).AddTo(routes.Root)
+	controller.RegisterController(&UserController{u:user.U}).AddToRoot()
 }

@@ -2,7 +2,6 @@ package lodge
 
 import (
 	"../"
-	"../../log"
 	"../user"
 	"errors"
 	"launchpad.net/mgo"
@@ -28,6 +27,10 @@ type Lodge struct {
 	Games  []bson.ObjectId
 }
 
+func NewLodge() *Lodge {
+	return new(Lodge)
+}
+
 //		Utility Functions 
 
 func (this Lodge) Url() string {
@@ -41,7 +44,6 @@ func (this *Lodge) AddMason(u *user.User) {
 	}
 	u.Lodges = append(u.Lodges, this.Name)
 	if !u.IsNew() {
-		log.Debug("User is not new; saving User")
 		model.Save(u)
 	}
 }

@@ -1,18 +1,16 @@
-package controller
+package controllers
 
 import (
+	"../controller"
 	"../login"
 	"../models"
 	"../models/lodge"
-	"../rack"
-	"../redirecter"
-	"../routes"
 	"../session"
-	"net/http"
 )
 
 type LodgeController struct {
-	L *lodge.LodgeCollection
+	l *lodge.LodgeCollection
+	controller.Heart
 }
 
 func (LodgeController) RouteName() string {
@@ -23,65 +21,67 @@ func (LodgeController) VarName() string {
 	return "Lodge"
 }
 
-func (this LodgeController) Indexer(s string, vars rack.Vars) (interface{}, bool) {
-	result := this.L.LodgeFromName(s)
+func (this LodgeController) Indexer(s string) (interface{}, bool) {
+	result := this.l.LodgeFromName(s)
 	return result, result != nil
 }
 
-func (this LodgeController) Index(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+func (this LodgeController) Index() controller.Response {
 	var lodges []lodge.Lodge
-	err := this.L.AllLodges(&lodges)
+	err := this.l.AllLodges(&lodges)
 	if err != nil {
 		panic(err)
 	}
 
-	vars["Lodges"] = lodges
-	vars["Title"] = "Mason Lodges"
+	this.Set("Lodges",lodges)
+	this.Set("Title","Mason Lodges")
 
-	return next()
+	return this.DefaultResponse()
 }
 
-func (this LodgeController) Show(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	l := vars["Lodge"].(*lodge.Lodge)
+func (this LodgeController) Show() controller.Response {
+	l,isLodge := this.Get("Lodge").(*lodge.Lodge)
+	if !isLodge {
+		panic("Can't find lodge")
+	}
 
-	vars["Title"] = l.Name
+	this.Set("Title",l.Name)
 
-	return next()
+	return this.DefaultResponse()
 }
 
-func (this LodgeController) New(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+func (this LodgeController) New() controller.Response {
 
-	vars["Title"] = "Create a Mason Lodge"
+	this.Set("Title","Create a Mason Lodge")
 
-	return next()
+	return this.DefaultResponse()
 }
 
-func (this LodgeController) Create(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+func (this LodgeController) Create() (response controller.Response) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			status, header, message = redirecter.Go(r, vars, "/lodges/new",
-				session.AddFlash("You fucked something up, please try again"))
+			this.AddFlash("You fucked something up, please try again")
+			response = this.Redirection("/lodges/new")
 		}
 	}()
 
-	var l lodge.Lodge
+	l := lodge.NewLodge()
 
-	l.Name = r.FormValue("Lodge[Name]")
-	l.AddMason(login.CurrentUser(vars))
+	l.Name = this.GetFormValue("Lodge[Name]")
+	l.AddMason(login.CurrentUser(this.Vars))
 
-	errs := model.Save(&l)
+	errs := model.Save(l)
 	if errs != nil {
 		panic(errs)
 	}
 
-	vars["Lodge"] = &l
-	return next()
+	return this.RespondWith(l)
 }
 
-var LodgeRoute *routes.ResourceRouter
+var Lodge *controller.ControllerShell
 
 func init() {
-	LodgeRoute = routes.Resource(LodgeController{lodge.L})
-	LodgeRoute.AddTo(routes.Root)
+	Lodge = controller.RegisterController(&LodgeController{l:lodge.L})
+	Lodge.AddToRoot()
 }

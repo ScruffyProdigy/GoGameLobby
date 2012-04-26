@@ -87,7 +87,7 @@ func main() {
 		site = ":3000"
 	}
 
-	fmt.Print("\n\nStarting at localhost" + site + "!\n\n\n")
+	log.Info("\n\nStarting at localhost" + site + "!\n\n\n")
 
 	//set an appropriate logging level
 	if mode == release {
