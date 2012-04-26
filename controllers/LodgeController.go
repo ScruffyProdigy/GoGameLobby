@@ -5,7 +5,6 @@ import (
 	"../login"
 	"../models"
 	"../models/lodge"
-	"../session"
 )
 
 type LodgeController struct {

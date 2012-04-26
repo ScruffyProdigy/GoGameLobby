@@ -5,8 +5,6 @@ import (
 	"../login"
 	"../models"
 	"../models/user"
-	"../session"
-	"strconv"
 	"time"
 )
 
@@ -88,7 +86,7 @@ func (this UserController) Create() (response controller.Response) {
 		}
 	}()
 
-	var u user.User = user.NewUser()
+	u := user.NewUser()
 
 	u.ClashTag = this.GetFormValue("User[ClashTag]")
 

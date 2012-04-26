@@ -5,7 +5,6 @@ import (
 	"../models"
 	"../models/game"
 	"../models/lodge"
-	"../session"
 )
 
 func init() {
