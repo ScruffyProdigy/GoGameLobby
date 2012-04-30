@@ -2,21 +2,21 @@ package main
 
 import (
 	_ "./controllers"
-	"github.com/HairyMezican/Middleware/errorhandler"
-	"github.com/HairyMezican/Middleware/oauther/facebooker"
-	"github.com/HairyMezican/Middleware/oauther/googleplusser"
-	"github.com/HairyMezican/Middleware/interceptor"
-	"github.com/HairyMezican/Middleware/encapsulator"
-	"github.com/HairyMezican/Middleware/statuser"
 	"./loadconfiguration"
 	"./login"
 	"./models"
+	"fmt"
+	"github.com/HairyMezican/Middleware/encapsulator"
+	"github.com/HairyMezican/Middleware/errorhandler"
+	"github.com/HairyMezican/Middleware/interceptor"
 	"github.com/HairyMezican/Middleware/oauther"
-	"github.com/HairyMezican/TheRack/rack"
+	"github.com/HairyMezican/Middleware/oauther/facebooker"
+	"github.com/HairyMezican/Middleware/oauther/googleplusser"
 	"github.com/HairyMezican/Middleware/router"
 	"github.com/HairyMezican/Middleware/sessioner"
+	"github.com/HairyMezican/Middleware/statuser"
+	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/TheTemplater/templater"
-	"fmt"
 	"log"
 	"os"
 )
@@ -64,7 +64,7 @@ func main() {
 	cept.Intercept("/logout/", login.LogOut)
 
 	//load the templates for the views
-	templater.LoadFromFiles("./views",log.New(os.Stdout,"template - ",log.LstdFlags))
+	templater.LoadFromFiles("./views", log.New(os.Stdout, "template - ", log.LstdFlags))
 
 	//set up default variables
 	defaults := rack.NewVars()

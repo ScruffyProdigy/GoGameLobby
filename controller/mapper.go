@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/Middleware/redirecter"
 	"github.com/HairyMezican/Middleware/renderer"
+	"github.com/HairyMezican/TheRack/rack"
 	"net/http"
 	"reflect"
 	"strings"
@@ -38,13 +38,13 @@ func (this dispatchAction) Run(r *http.Request, vars rack.Vars, next rack.Next) 
 		actions.Add(renderer.Renderer{this.m.RouteName() + "/" + this.name})
 	case "POST", "PUT":
 		//if it was a put or a post, we the default action should be to redirect to the affected item
-			actions.Add(rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {				
-				urler,isUrler := vars[this.m.VarName()].(Urler)
-				if !isUrler {
-					panic("Object doesn't have an URL to direct to")
-				}
-				return redirecter.Redirect(r, vars, urler.Url())
-			}))			
+		actions.Add(rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {
+			urler, isUrler := vars[this.m.VarName()].(Urler)
+			if !isUrler {
+				panic("Object doesn't have an URL to direct to")
+			}
+			return redirecter.Redirect(r, vars, urler.Url())
+		}))
 	case "DELETE":
 		//I'm not currently sure what the default action for deletion should be, perhaps redirecting to the parent route
 	default:

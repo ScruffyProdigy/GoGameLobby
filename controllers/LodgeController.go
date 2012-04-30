@@ -59,17 +59,17 @@ func (this LodgeController) Create() (response controller.Response) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			errs,isSlice := rec.([]error)
-			if(isSlice) {
-				for _,err := range(errs) {
+			errs, isSlice := rec.([]error)
+			if isSlice {
+				for _, err := range errs {
 					this.AddFlash(err.Error())
 				}
 			}
-			err,isError := rec.(error)
+			err, isError := rec.(error)
 			if isError {
 				this.AddFlash(err.Error())
 			}
-			str,isStr := rec.(string)
+			str, isStr := rec.(string)
 			if isStr {
 				this.AddFlash(str)
 			}
@@ -81,7 +81,7 @@ func (this LodgeController) Create() (response controller.Response) {
 	l := lodge.NewLodge()
 
 	l.Name = urlify(this.GetFormValue("Lodge[Name]"))
-	user,loggedIn := login.CurrentUser(this.Vars)
+	user, loggedIn := login.CurrentUser(this.Vars)
 	if !loggedIn {
 		panic("you must be logged in to create a mason lodge")
 	}

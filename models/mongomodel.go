@@ -1,10 +1,10 @@
 package model
 
 import (
-	"log"
 	"errors"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
+	"log"
 )
 
 var db *mgo.Database

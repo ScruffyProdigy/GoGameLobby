@@ -1,10 +1,10 @@
 package login
 
 import (
+	"encoding/json"
 	"github.com/HairyMezican/Middleware/oauther"
 	"github.com/HairyMezican/Middleware/oauther/facebooker"
 	"github.com/HairyMezican/goauth2/oauth"
-	"encoding/json"
 	"net/http"
 )
 
@@ -18,20 +18,20 @@ func (Facebooker) GetName() string {
 
 func (this Facebooker) GetUserID(tok *oauth.Token) (result string) {
 	oauther.GetSite(this, tok, "https://graph.facebook.com/me", func(res *http.Response) {
-        //use json to read in the result into this struct
-        var uid struct {
-            ID string `json:"id"` //there are a lot of fields, but we really only care about the ID
-        }
+		//use json to read in the result into this struct
+		var uid struct {
+			ID string `json:"id"` //there are a lot of fields, but we really only care about the ID
+		}
 
-        d := json.NewDecoder(res.Body)
-        err := d.Decode(&uid)
-        if err != nil {
-            panic(err)
-        }
+		d := json.NewDecoder(res.Body)
+		err := d.Decode(&uid)
+		if err != nil {
+			panic(err)
+		}
 
-        result = uid.ID
-    })
-    return
+		result = uid.ID
+	})
+	return
 }
 
 func NewFacebooker(data facebooker.Data) Facebooker {

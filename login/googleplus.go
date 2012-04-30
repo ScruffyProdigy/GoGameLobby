@@ -1,11 +1,11 @@
 package login
 
-import(
+import (
+	"encoding/json"
 	"github.com/HairyMezican/Middleware/oauther"
 	"github.com/HairyMezican/Middleware/oauther/googleplusser"
 	"github.com/HairyMezican/goauth2/oauth"
 	"net/http"
-	"encoding/json"
 )
 
 type GooglePlusser struct {
@@ -38,5 +38,5 @@ func (this GooglePlusser) GetUserID(tok *oauth.Token) (result string) {
 }
 
 func NewGooglePlusser(data googleplusser.Data) GooglePlusser {
-	return GooglePlusser{googleplusser.New(data),data.Apikey}
+	return GooglePlusser{googleplusser.New(data), data.Apikey}
 }

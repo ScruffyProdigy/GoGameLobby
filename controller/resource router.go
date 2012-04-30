@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/Middleware/router"
+	"github.com/HairyMezican/TheRack/rack"
 	"net/http"
 )
 

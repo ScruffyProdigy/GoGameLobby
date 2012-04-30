@@ -1,12 +1,12 @@
 package login
 
 import (
-	"github.com/HairyMezican/goauth2/oauth"
 	"../models/user"
 	"github.com/HairyMezican/Middleware/oauther"
-	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/Middleware/redirecter"
 	"github.com/HairyMezican/Middleware/sessioner"
+	"github.com/HairyMezican/TheRack/rack"
+	"github.com/HairyMezican/goauth2/oauth"
 	"net/http"
 	"time"
 )
@@ -40,7 +40,7 @@ func CreateHandler(a Authorizer) *TokenHandler {
 	return t
 }
 
-func HandleToken(o oauther.Oauther,tok *oauth.Token) rack.Middleware {
+func HandleToken(o oauther.Oauther, tok *oauth.Token) rack.Middleware {
 	this := new(TokenHandler)
 	this.a = o.(Authorizer)
 	this.tok = tok
@@ -74,8 +74,8 @@ func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.Next) (s
 	return NewUserForm{Token: *this.tok, Authorization: authorization, Id: id}.Run(r, vars, next)
 }
 
-func CurrentUser(vars rack.Vars) (u *user.User,loggedIn bool) {
-	u,loggedIn = vars["CurrentUser"].(*user.User)
+func CurrentUser(vars rack.Vars) (u *user.User, loggedIn bool) {
+	u, loggedIn = vars["CurrentUser"].(*user.User)
 	return
 }
 

@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/HairyMezican/TheRack/rack"
-	"github.com/HairyMezican/Middleware/renderer"
 	"github.com/HairyMezican/Middleware/redirecter"
+	"github.com/HairyMezican/Middleware/renderer"
 	"github.com/HairyMezican/Middleware/sessioner"
+	"github.com/HairyMezican/TheRack/rack"
 	"net/http"
 )
 
