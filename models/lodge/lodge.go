@@ -3,7 +3,6 @@ package lodge
 import (
 	"../"
 	"../user"
-	"errors"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 )
@@ -50,12 +49,19 @@ func (this *Lodge) AddMason(u *user.User) {
 
 //		Interface Methods
 
-func (this *Lodge) Validate() (errs []error) {
+func (this *Lodge) Validate() (errors *model.ValidationErrors) {
 	//Name should be unique
+	errors = model.NoErrors()
+
 	other := L.LodgeFromName(this.Name)
 	if other != nil && other.ID != this.ID {
-		errs = append(errs, errors.New("Lodge Name Should Be Unique"))
+		errors.Add("Name", "should be unique")
 	}
+
+	if this.Name == "new" {
+		errors.Add("Name", "the word 'new' is reserved")
+	}
+
 	return
 }
 

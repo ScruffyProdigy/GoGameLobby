@@ -31,8 +31,15 @@ func NewGame() *Game {
 
 //		Interface Methods
 
-func (this *Game) Validate() []error {
-	return nil
+func (this *Game) Validate() (errors *model.ValidationErrors) {
+	errors = model.NoErrors()
+
+	other := G.GameFromName(this.Name)
+	if other != nil && other.ID != this.ID {
+		errors.Add("Name", "should be unique")
+	}
+
+	return
 }
 
 func (this *Game) IsNew() bool {

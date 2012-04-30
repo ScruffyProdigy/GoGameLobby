@@ -45,8 +45,19 @@ func (this User) Url() string {
 
 //	Interface Methods
 
-func (this *User) Validate() (err []error) {
-	return nil
+func (this *User) Validate() (errors *model.ValidationErrors) {
+	errors = model.NoErrors()
+
+	other := U.UserFromClashTag(this.ClashTag)
+	if other != nil && other.ID != this.ID {
+		errors.Add("ClashTag", "should be unique")
+	}
+
+	if this.ClashTag == "new" {
+		errors.Add("ClashTag", "the word 'new' is reserved")
+	}
+
+	return
 }
 
 func (this *User) IsNew() bool {
