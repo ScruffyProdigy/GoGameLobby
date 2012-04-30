@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"../rack"
-	"../redirecter"
-	"../templater"
+	"github.com/HairyMezican/TheRack/rack"
+	"github.com/HairyMezican/Middleware/redirecter"
+	"github.com/HairyMezican/Middleware/renderer"
 	"net/http"
 	"reflect"
 	"strings"
@@ -15,10 +15,14 @@ type dispatchAction struct {
 	action rack.Middleware
 }
 
-func (this dispatchAction) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+type Urler interface {
+	Url() string
+}
+
+func (this dispatchAction) Run(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {
 	actions := rack.NewRack()
 	if r.Method == "POST" || r.Method == "PUT" {
-		actions.Add(rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+		actions.Add(rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {
 
 			err := r.ParseForm()
 			if err != nil {
@@ -31,12 +35,16 @@ func (this dispatchAction) Run(r *http.Request, vars rack.Vars, next rack.NextFu
 	switch r.Method {
 	case "GET":
 		//if it was a get, the default action should be to render the template corresponding with the action
-		actions.Add(templater.Templater{this.m.RouteName() + "/" + this.name})
+		actions.Add(renderer.Renderer{this.m.RouteName() + "/" + this.name})
 	case "POST", "PUT":
 		//if it was a put or a post, we the default action should be to redirect to the affected item
-		actions.Add(rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
-			return redirecter.Go(r, vars, vars[this.m.VarName()].(Urler).Url())
-		}))
+			actions.Add(rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {				
+				urler,isUrler := vars[this.m.VarName()].(Urler)
+				if !isUrler {
+					panic("Object doesn't have an URL to direct to")
+				}
+				return redirecter.Redirect(r, vars, urler.Url())
+			}))			
 	case "DELETE":
 		//I'm not currently sure what the default action for deletion should be, perhaps redirecting to the parent route
 	default:
@@ -77,7 +85,7 @@ func GetRestMap(controller interface{}) (restfuncs map[string]rack.Middleware) {
 		if methodExists && isControlFunc(method) {
 			caller := method.Func
 			value := []reflect.Value{reflect.ValueOf(controller)}
-			restfuncs[funcName] = &dispatchAction{m: mapper, name: strings.ToLower(funcName), action: rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+			restfuncs[funcName] = &dispatchAction{m: mapper, name: strings.ToLower(funcName), action: rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {
 				mapper.SetDefaultResponse(next)
 				result, isResponse := caller.Call(value)[0].Interface().(Response)
 				if !isResponse {
@@ -120,7 +128,7 @@ func GetGenericMap(controller interface{}, functype string) (funcs map[string]ra
 			caller := method.Func
 			value := []reflect.Value{reflect.ValueOf(controller)}
 			name := method.Name[typelen:]
-			funcs[name] = &dispatchAction{m: mapper, name: strings.ToLower(name), action: rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+			funcs[name] = &dispatchAction{m: mapper, name: strings.ToLower(name), action: rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {
 				mapper.SetDefaultResponse(next)
 				result := caller.Call(value)
 				return result[0].Interface().(int), result[1].Interface().(http.Header), result[2].Interface().([]byte)

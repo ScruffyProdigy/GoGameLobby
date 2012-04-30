@@ -88,7 +88,7 @@ func (this UserController) Create() (response controller.Response) {
 
 	u := user.NewUser()
 
-	u.ClashTag = this.GetFormValue("User[ClashTag]")
+	u.ClashTag = urlify(this.GetFormValue("User[ClashTag]"))
 	u.Authorizations = []user.AuthorizationData{authData}
 
 	errs := model.Save(u)

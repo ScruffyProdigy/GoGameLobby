@@ -2,21 +2,23 @@ package main
 
 import (
 	_ "./controllers"
-	"./errorhandler"
-	"./facebooker"
-	"./googleplusser"
-	"./interceptor"
-	"./layouts"
+	"github.com/HairyMezican/Middleware/errorhandler"
+	"github.com/HairyMezican/Middleware/oauther/facebooker"
+	"github.com/HairyMezican/Middleware/oauther/googleplusser"
+	"github.com/HairyMezican/Middleware/interceptor"
+	"github.com/HairyMezican/Middleware/encapsulator"
+	"github.com/HairyMezican/Middleware/statuser"
 	"./loadconfiguration"
-	"./log"
 	"./login"
 	"./models"
-	"./oauther"
-	"./rack"
-	"./routes"
-	"./session"
-	"./templater"
+	"github.com/HairyMezican/Middleware/oauther"
+	"github.com/HairyMezican/TheRack/rack"
+	"github.com/HairyMezican/Middleware/router"
+	"github.com/HairyMezican/Middleware/sessioner"
+	"github.com/HairyMezican/TheTemplater/templater"
 	"fmt"
+	"log"
+	"os"
 )
 
 const (
@@ -48,21 +50,21 @@ func main() {
 	model.SetUp() //can't happen during models's init, because it needs to wait until each of the models has initialized
 
 	//set up the interceptor routes
-	cept := interceptor.NewInterceptor()
+	cept := interceptor.New()
 
 	//facebook
-	facebooker.SetConfiguration(LoadFacebookData())
-	oauther.RegisterOauth(cept, facebooker.Default, login.CreateHandler(facebooker.Default))
+	fb := login.NewFacebooker(LoadFacebookData())
+	oauther.SetIntercepts(cept, fb, login.HandleToken)
 
 	//google plus
-	googleplusser.SetConfiguration(LoadGoogleData())
-	oauther.RegisterOauth(cept, googleplusser.Default, login.CreateHandler(googleplusser.Default))
+	gp := login.NewGooglePlusser(LoadGoogleData())
+	oauther.SetIntercepts(cept, gp, login.HandleToken)
 
 	//logging out
 	cept.Intercept("/logout/", login.LogOut)
 
 	//load the templates for the views
-	templater.LoadTemplates("./views")
+	templater.LoadFromFiles("./views",log.New(os.Stdout,"template - ",log.LstdFlags))
 
 	//set up default variables
 	defaults := rack.NewVars()
@@ -70,16 +72,16 @@ func main() {
 
 	//set up the rack
 	rack.Up.Add(defaults)
-	rack.Up.Add(layouts.AddLayout)
-	rack.Up.Add(layouts.SetErrorLayout)
+	rack.Up.Add(encapsulator.AddLayout)
+	rack.Up.Add(statuser.SetErrorLayout)
 	if mode != debug {
 		rack.Up.Add(errorhandler.ErrorHandler) //in debug version, it's more useful to just let it crash, so we can get more error information
 	}
-	rack.Up.Add(session.Middleware)
+	rack.Up.Add(sessioner.Middleware)
 	rack.Up.Add(login.Middleware)
 	rack.Up.Add(cept)
-	rack.Up.Add(routes.Parser)
-	rack.Up.Add(routes.Root)
+	rack.Up.Add(router.Parser)
+	rack.Up.Add(router.Root)
 
 	//alert the user as to where we are running
 	var site = ":80"
@@ -87,12 +89,7 @@ func main() {
 		site = ":3000"
 	}
 
-	log.Info("\n\nStarting at localhost" + site + "!\n\n\n")
-
-	//set an appropriate logging level
-	if mode == release {
-		log.SetLogLevel(log.Level_Warning)
-	}
+	fmt.Print("\n\nStarting at localhost" + site + "!\n\n\n")
 
 	//We're ready to go!
 	//run each request through the rack!

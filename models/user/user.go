@@ -2,7 +2,7 @@ package user
 
 import (
 	"../"
-	"../../goauth2/oauth"
+	"github.com/HairyMezican/goauth2/oauth"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 )

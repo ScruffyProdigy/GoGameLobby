@@ -1,7 +1,7 @@
 package model
 
 import (
-	"../log"
+	"log"
 	"errors"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"

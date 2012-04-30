@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"../rack"
-	"../redirecter"
-	"../session"
-	"../templater"
+	"github.com/HairyMezican/TheRack/rack"
+	"github.com/HairyMezican/Middleware/renderer"
+	"github.com/HairyMezican/Middleware/redirecter"
+	"github.com/HairyMezican/Middleware/sessioner"
 	"net/http"
 )
 
@@ -14,7 +14,7 @@ type Heart struct {
 	m    ModelMap
 	R    *http.Request
 	Vars rack.Vars
-	Next rack.NextFunc
+	Next rack.Next
 }
 
 // this is how we hide the rack variables from the controllers who don't really care so much about these
@@ -28,12 +28,12 @@ func (this *Heart) SetRackFuncVars(m ModelMap, r *http.Request, vars rack.Vars) 
 // this sets the default response that the controller will give
 // by default, this will lead to rendering for any GET requests, and redirection for PUT and POST
 // DELETE is currently not implemented
-func (this *Heart) SetDefaultResponse(next rack.NextFunc) {
+func (this *Heart) SetDefaultResponse(next rack.Next) {
 	this.Next = next
 }
 
 // if you are calling another Rack Middleware, you should call this function to get the variables it will need to run
-func (this Heart) GetRackFuncVars() (r *http.Request, vars rack.Vars, next rack.NextFunc) {
+func (this Heart) GetRackFuncVars() (r *http.Request, vars rack.Vars, next rack.Next) {
 	return this.R, this.Vars, this.Next
 }
 
@@ -62,13 +62,13 @@ func (this Heart) MiddlewareResponse(m rack.Middleware) Response {
 // if things don't go according to plan, you can redirect somewhere else
 // return this instead of DefaultResponse along with where you want to redirect to
 func (this Heart) Redirection(url string) Response {
-	return FromRack(redirecter.Go(this.R, this.Vars, url))
+	return FromRack(redirecter.Redirect(this.R, this.Vars, url))
 }
 
 // use this if you want to render something other than the default template
 // return this instead of DefaultResponse along with the template you want to render
 func (this Heart) Rendering(tmpl string) Response {
-	return FromRack(templater.Render(tmpl, this.Vars))
+	return FromRack(renderer.Render(tmpl, this.Vars))
 }
 
 // this will get the form value from the form that was passed in
@@ -96,15 +96,15 @@ func (this Heart) Apply(f rack.VarFunc) interface{} {
 
 // this will get you a session variable
 // look at the session documentation to figure out what you can do with it
-func (this Heart) Session() session.Session {
-	return this.Vars["session"].(session.Session)
+func (this Heart) Session() sessioner.Session {
+	return this.Vars["session"].(sessioner.Session)
 }
 
 // this will add a flash to the list of flashes
 // flashes are typically used before redirecting
 // all flashes stored before redirecting are available only after the next redirect, and are then immediately erased
 func (this Heart) AddFlash(flash string) {
-	this.Apply(session.AddFlash(flash))
+	this.Apply(sessioner.AddFlash(flash))
 }
 
 // this will get access to all of the flashes stored before the last redirect

@@ -1,25 +1,25 @@
 package login
 
 import (
-	"../goauth2/oauth"
+	"github.com/HairyMezican/goauth2/oauth"
 	"../models/user"
-	"../oauther"
-	"../rack"
-	"../redirecter"
-	"../session"
+	"github.com/HairyMezican/Middleware/oauther"
+	"github.com/HairyMezican/TheRack/rack"
+	"github.com/HairyMezican/Middleware/redirecter"
+	"github.com/HairyMezican/Middleware/sessioner"
 	"net/http"
 	"time"
 )
 
 type NewUserForm user.AuthorizationData
 
-func (this NewUserForm) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
-	return redirecter.Go(r, vars, "/users/new",
-		session.Set("authorization", this.Authorization),
-		session.Set("auth_id", this.Id),
-		session.Set("access", this.Token.AccessToken),
-		session.Set("refresh", this.Token.RefreshToken),
-		session.Set("expiry", this.Token.Expiry.Format(time.RFC1123)),
+func (this NewUserForm) Run(r *http.Request, vars rack.Vars, next rack.Next) (status int, header http.Header, message []byte) {
+	return redirecter.Redirect(r, vars, "/users/new",
+		sessioner.Set("authorization", this.Authorization),
+		sessioner.Set("auth_id", this.Id),
+		sessioner.Set("access", this.Token.AccessToken),
+		sessioner.Set("refresh", this.Token.RefreshToken),
+		sessioner.Set("expiry", this.Token.Expiry.Format(time.RFC1123)),
 	)
 }
 
@@ -40,14 +40,16 @@ func CreateHandler(a Authorizer) *TokenHandler {
 	return t
 }
 
-func (this *TokenHandler) HandleToken(tok *oauth.Token) rack.Middleware {
+func HandleToken(o oauther.Oauther,tok *oauth.Token) rack.Middleware {
+	this := new(TokenHandler)
+	this.a = o.(Authorizer)
 	this.tok = tok
 	return this
 }
 
-func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.NextFunc) (status int, header http.Header, message []byte) {
+func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.Next) (status int, header http.Header, message []byte) {
 	if this.tok == nil {
-		vars.Apply(session.AddFlash("Log In Cancelled"))
+		vars.Apply(sessioner.AddFlash("Log In Cancelled"))
 
 		w := rack.BlankResponse()
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -61,7 +63,7 @@ func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.NextFunc
 	if u != nil {
 		//if we find a user, log them in
 		vars.Apply(LogIn(u))
-		vars.Apply(session.AddFlash("Welcome back, " + u.ClashTag))
+		vars.Apply(sessioner.AddFlash("Welcome back, " + u.ClashTag))
 
 		w := rack.BlankResponse()
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -72,8 +74,9 @@ func (this TokenHandler) Run(r *http.Request, vars rack.Vars, next rack.NextFunc
 	return NewUserForm{Token: *this.tok, Authorization: authorization, Id: id}.Run(r, vars, next)
 }
 
-func CurrentUser(vars rack.Vars) *user.User {
-	return vars["CurrentUser"].(*user.User)
+func CurrentUser(vars rack.Vars) (u *user.User,loggedIn bool) {
+	u,loggedIn = vars["CurrentUser"].(*user.User)
+	return
 }
 
 func LogIn(u *user.User) rack.VarFunc {
@@ -82,7 +85,7 @@ func LogIn(u *user.User) rack.VarFunc {
 			vars.Apply(LogOutFunc())
 			return nil
 		}
-		vars.Apply(session.Set("CurrentUser", u.ClashTag))
+		vars.Apply(sessioner.Set("CurrentUser", u.ClashTag))
 		vars["CurrentUser"] = u
 		return nil
 	}
@@ -95,22 +98,22 @@ func LogInFromClashTag(clashtag string) rack.VarFunc {
 
 func LogOutFunc() rack.VarFunc {
 	return func(vars rack.Vars) interface{} {
-		vars.Apply(session.Clear("CurrentUser"))
+		vars.Apply(sessioner.Clear("CurrentUser"))
 		delete(vars, "CurrentUser")
 		return nil
 	}
 }
 
-var LogOut = rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
+var LogOut = rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {
 	vars.Apply(LogOutFunc())
-	vars.Apply(session.AddFlash("You Have Now Logged Out"))
+	vars.Apply(sessioner.AddFlash("You Have Now Logged Out"))
 	w := rack.BlankResponse()
 	http.Redirect(w, r, "/", http.StatusFound)
 	return w.Results()
 })
 
-var Middleware = rack.Func(func(r *http.Request, vars rack.Vars, next rack.NextFunc) (int, http.Header, []byte) {
-	u := vars.Apply(session.Get("CurrentUser"))
+var Middleware = rack.Func(func(r *http.Request, vars rack.Vars, next rack.Next) (int, http.Header, []byte) {
+	u := vars.Apply(sessioner.Get("CurrentUser"))
 	if u != nil {
 		clashtag, isString := u.(string)
 		if isString {

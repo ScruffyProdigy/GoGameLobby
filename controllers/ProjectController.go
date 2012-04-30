@@ -59,7 +59,7 @@ func (this ProjectController) Create() (response controller.Response) {
 	}()
 
 	g := game.NewGame()
-	g.Name = this.GetFormValue("Game[Name]")
+	g.Name = urlify(this.GetFormValue("Game[Name]"))
 	g.Lodge = l.Name
 
 	errs := model.Save(g)

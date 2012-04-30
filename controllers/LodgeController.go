@@ -59,6 +59,20 @@ func (this LodgeController) Create() (response controller.Response) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
+			errs,isSlice := rec.([]error)
+			if(isSlice) {
+				for _,err := range(errs) {
+					this.AddFlash(err.Error())
+				}
+			}
+			err,isError := rec.(error)
+			if isError {
+				this.AddFlash(err.Error())
+			}
+			str,isStr := rec.(string)
+			if isStr {
+				this.AddFlash(str)
+			}
 			this.AddFlash("You fucked something up, please try again")
 			response = this.Redirection("/lodges/new")
 		}
@@ -66,8 +80,12 @@ func (this LodgeController) Create() (response controller.Response) {
 
 	l := lodge.NewLodge()
 
-	l.Name = this.GetFormValue("Lodge[Name]")
-	l.AddMason(login.CurrentUser(this.Vars))
+	l.Name = urlify(this.GetFormValue("Lodge[Name]"))
+	user,loggedIn := login.CurrentUser(this.Vars)
+	if !loggedIn {
+		panic("you must be logged in to create a mason lodge")
+	}
+	l.AddMason(user)
 
 	errs := model.Save(l)
 	if errs != nil {
