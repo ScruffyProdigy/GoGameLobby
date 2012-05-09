@@ -22,8 +22,8 @@ func init() {
 type Lodge struct {
 	ID     bson.ObjectId `_id`
 	Name   string
-	Masons []string
-	Games  []bson.ObjectId
+	Masons []string //could use ObjectID, but putting in the name allows us to not need to load the users or games into memory quite as often
+	Games  []string //downside is, if any of the games or users gets renamed, we'll have to readjust all of the lodges that point to them
 }
 
 func NewLodge() *Lodge {
@@ -133,16 +133,11 @@ func (this *LodgeCollection) LodgeFromName(s string) *Lodge {
 }
 
 func (this *LodgeCollection) LodgesFromMason(u *user.User) []Lodge {
+	var result []Lodge
 
 	query := bson.M{"masons": u.ClashTag}
-	count, err := this.collection.Find(query).Count()
-	if err != nil {
-		return nil
-	}
 
-	result := make([]Lodge, count)
-
-	err = this.collection.Find(query).All(&result)
+	err := this.collection.Find(query).All(&result)
 	if err != nil {
 		return nil
 	}

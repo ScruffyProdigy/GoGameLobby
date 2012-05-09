@@ -4,6 +4,7 @@ import (
 	"../controller"
 	"../login"
 	"../models"
+	"../models/game"
 	"../models/lodge"
 )
 
@@ -43,6 +44,10 @@ func (this LodgeController) Show() controller.Response {
 		panic("Can't find lodge")
 	}
 
+	inProgress := game.G.UnpublishedGamesFromLodge(l)
+	if len(inProgress) > 0 {
+		this.Set("InProgress", inProgress)
+	}
 	this.Set("Title", l.Name)
 
 	return this.DefaultResponse()

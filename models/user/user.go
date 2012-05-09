@@ -24,7 +24,8 @@ type User struct {
 	ClashTag       string
 	Points         int
 	Authorizations []AuthorizationData
-	Lodges         []string
+	Lodges         []string //we could use ObjectId's, but then we'd have to load the lodge into memory more often to get it's name
+	//of course, by using the lodge's name, it means if the lodge ever gets renamed, we'll have to update all of the users
 }
 
 type AuthorizationData struct {

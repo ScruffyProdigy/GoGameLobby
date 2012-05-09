@@ -4,6 +4,7 @@ import (
 	"../"
 	"../../gamedata"
 	"../../messenger"
+	"../lodge"
 	"../user"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
@@ -26,8 +27,9 @@ type Game struct {
 	Name      string
 	Published bool
 	Live      bool
-	Lodge     string
-	CommUrl   string
+	Lodge     string //could use ObjectID, but putting in the name allows us to not need to load the lodge into memory quite as often
+	//downside is, if the lodge gets renamed, we'll have to readjust all of the games that point to it
+	CommUrl string
 }
 
 func NewGame() *Game {
@@ -125,6 +127,9 @@ func (this *GameCollection) GetIndices() []mgo.Index {
 			Unique: true,
 		},
 		{
+			Key: []string{"lodge", "published"},
+		},
+		{
 			Key:    []string{"lodge", "name"},
 			Unique: true,
 		},
@@ -146,10 +151,10 @@ func (this *GameCollection) GameFromName(name string) *Game {
 	return &result
 }
 
-func (this *GameCollection) GameFromLodgeAndName(lodge, name string) *Game {
+func (this *GameCollection) GameFromLodgeAndName(l *lodge.Lodge, name string) *Game {
 	var result Game
 
-	query := bson.M{"lodge": lodge, "name": name}
+	query := bson.M{"lodge": l.Name, "name": name}
 
 	err := this.collection.Find(query).One(&result)
 	if err != nil {
@@ -170,4 +175,17 @@ func (this *GameCollection) PublishedGameFromName(name string) *Game {
 	}
 
 	return &result
+}
+
+func (this *GameCollection) UnpublishedGamesFromLodge(l *lodge.Lodge) []Game {
+	var result []Game
+
+	query := bson.M{"lodge": l.Name, "published": false}
+
+	err := this.collection.Find(query).All(&result)
+	if err != nil {
+		return nil
+	}
+
+	return result
 }

@@ -5,8 +5,17 @@
 <li><a href="/users/{{.}}/">{{.}}</a></li>
 {{end}}
 </ul>
+{{if .InProgress}}
+<section><header><h1>Current Projects</h1></header>
+<ul>
+{{range .InProgress}}
+<li><a href="{{.Url}}">{{.Name}}</a></li>
+{{end}}
+</ul>
+</section>
+{{end}}
 <section class="New Project"><header><h1>Start a Project!</h1></header>
-<p>Lets make a Mason Lodge!</p>
+<p>Lets start a new project!</p>
 <form action="/lodges/{{.Lodge.Name}}/projects/" method="post">
 	<label for="game_name">Your new game will need a name!:</label>
 	<input id="game_name" name="Game[Name]" size="30" type="text" /><br />

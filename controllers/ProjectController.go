@@ -22,7 +22,7 @@ func (this ProjectController) Indexer(query string) (interface{}, bool) {
 		panic("Cannot find lodge")
 	}
 
-	result := game.G.GameFromLodgeAndName(l.Name, query)
+	result := game.G.GameFromLodgeAndName(l, query)
 	return result, result != nil
 }
 
