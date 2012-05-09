@@ -5,6 +5,7 @@ import (
 )
 
 const unsafe = "/\\\"`^%+?#&{}|<>"
+const safe = "()[]'!@$*-=_~.,:;"
 
 func removeChars(original, removed string) (result string) {
 	i := 0
@@ -18,7 +19,6 @@ func removeChars(original, removed string) (result string) {
 	return original
 }
 
-//"$&+,/:;=?@#%"
 func urlify(a string) string {
 	b := strings.ToLower(a)               // lower case it
 	c := strings.Replace(b, " ", "-", -1) // replace the spaces with more url friendly dashes

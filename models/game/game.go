@@ -2,6 +2,9 @@ package game
 
 import (
 	"../"
+	"../../gamedata"
+	"../../messenger"
+	"../user"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 )
@@ -20,9 +23,11 @@ func init() {
 
 type Game struct {
 	ID        bson.ObjectId `_id`
-	Name      string        `name`
-	Published bool          `published`
-	Lodge     string        `lodge`
+	Name      string
+	Published bool
+	Live      bool
+	Lodge     string
+	CommUrl   string
 }
 
 func NewGame() *Game {
@@ -64,6 +69,25 @@ func (this *Game) Url() string {
 		return "/games/" + this.Name + "/"
 	}
 	return "/lodges/" + this.Lodge + "/projects/" + this.Name + "/"
+}
+
+func (this *Game) Message(message, result interface{}) {
+	err := messenger.JSONmessage(message, this.CommUrl, result)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (this *Game) GetGameModes(u *user.User) []gamedata.ModeInfo {
+	var Data struct {
+		Mode gamedata.PreModeInfo
+	}
+	Data.Mode.User = u.ClashTag
+
+	var Result []gamedata.ModeInfo
+	this.Message(Data, &Result)
+
+	return Result
 }
 
 /*

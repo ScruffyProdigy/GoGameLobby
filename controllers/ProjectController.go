@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"../controller"
+	"../login"
 	"../models"
 	"../models/game"
 	"../models/lodge"
@@ -37,6 +38,11 @@ func (this ProjectController) Show() controller.Response {
 	g, isGame := this.Get("Game").(*game.Game)
 	if !isGame {
 		panic("Can't find Game")
+	}
+	currentUser, loggedIn := login.CurrentUser(this.Vars)
+	if g.Live && loggedIn {
+		gameModes := g.GetGameModes(currentUser)
+		this.Set("GameModes", gameModes)
 	}
 
 	this.Set("Title", g.Name)
