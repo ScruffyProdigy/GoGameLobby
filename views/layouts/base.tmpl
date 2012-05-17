@@ -16,13 +16,19 @@
 		</nav>
 		{{if .Queues}}
 			<section class="queues">
-				<header><h1>Queues</h1></header>
-				<p>You are currently waiting in the following queues:</p>
+				<header>
+					<h1>Queues</h1>
+					<p>You are currently waiting in the following queues:</p>
+				</header>
 				<ul>
 				{{range .Queues}}
-					<section class="queue">
-						{{.Game}} - {{.Mode}}
-					</section>
+					<a href="{{.Game.Url}}">
+						<li>
+							<section class="queue">
+								{{.Game.Name}} - {{.Mode}}
+							</section>
+						</li>
+					</a>
 				{{end}}
 				</ul>
 			</section>

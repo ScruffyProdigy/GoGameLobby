@@ -44,7 +44,7 @@ func sendStartMessages(startInfo gamedata.StartInfo) {
 }
 
 type UserQueue struct {
-	Game string
+	Game *Game
 	Mode string
 }
 
@@ -60,7 +60,7 @@ func GetUserQueues(user string) (result []UserQueue) {
 	for _, queue := range queues {
 		queueInfo := strings.SplitN(queue, sEp, 2)
 		queueStruct := UserQueue{
-			Game: queueInfo[0],
+			Game: G.GameFromName(queueInfo[0]),
 			Mode: queueInfo[1],
 		}
 		result = append(result, queueStruct)
