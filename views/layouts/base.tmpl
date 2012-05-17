@@ -14,6 +14,19 @@
 				{{end}}		
 			</ul>
 		</nav>
+		{{if .Queues}}
+			<section class="queues">
+				<header><h1>Queues</h1></header>
+				<p>You are currently waiting in the following queues:</p>
+				<ul>
+				{{range .Queues}}
+					<section class="queue">
+						{{.Game}} - {{.Mode}}
+					</section>
+				{{end}}
+				</ul>
+			</section>
+		{{end}}
 		{{if .flashes}}
 			<section class="flashes">
 				<header><h1>Attention</h1></header>

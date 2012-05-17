@@ -1,6 +1,7 @@
 package main
 
 import (
+	"./clashgetter"
 	"./controllers"
 	"./defaulter"
 	"./loadconfiguration"
@@ -83,6 +84,7 @@ func main() {
 	rackup.Add(methoder.Override)
 	rackup.Add(sessioner.Middleware)
 	rackup.Add(login.Middleware)
+	rackup.Add(clashgetter.QueueGetter)
 	rackup.Add(cept)
 	rackup.Add(controllers.Root)
 

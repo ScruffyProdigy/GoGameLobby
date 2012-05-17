@@ -4,6 +4,7 @@ import (
 	"../../gamedata"
 	"../../redis"
 	neturl "net/url"
+	"strings"
 )
 
 func usersIndex(user string) string {
@@ -47,13 +48,13 @@ type UserQueue struct {
 	Mode string
 }
 
-func GetUserQueues(user) (result []UserQueue) {
+func GetUserQueues(user string) (result []UserQueue) {
 	reply, err := redis.Client.Smembers(usersIndex(user))
 	if err != nil {
 		panic(err)
 	}
 
-	queues := replay.StringArray()
+	queues := reply.StringArray()
 
 	result = make([]UserQueue, 0, len(queues))
 	for _, queue := range queues {

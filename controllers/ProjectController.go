@@ -6,6 +6,7 @@ import (
 	"../models"
 	"../models/game"
 	"../models/lodge"
+	"fmt"
 	"github.com/HairyMezican/Middleware/logger"
 )
 
@@ -26,6 +27,7 @@ type groupDisplay struct {
 }
 
 func (this modeDisplay) Playable() bool {
+	fmt.Println("Playable:", len(this.Groups) > 0)
 	return len(this.Groups) > 0
 }
 
@@ -64,13 +66,13 @@ func (this ProjectController) Show() {
 	}
 
 	this.Set("Title", g.Name)
-	this.Finish()
 
 	currentUser, loggedIn := (login.V)(this.Vars).CurrentUser()
 	if g.Live && loggedIn {
 		gameModes, err := g.GetGameModes(currentUser)
 		if err != nil {
 			this.Set("Error", "Could not contact host site:"+err.Error())
+			this.Finish()
 			return
 		}
 
@@ -99,6 +101,7 @@ func (this ProjectController) Show() {
 		this.Set("GameModes", modes)
 		log.Println(modes)
 	}
+	this.Finish()
 
 }
 
