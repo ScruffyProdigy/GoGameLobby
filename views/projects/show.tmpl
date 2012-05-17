@@ -1,1 +1,77 @@
-<h1>{{.Game.Name}}</h1>
+{{$game := .Game}}<article><header><h1>{{.Game.Name}}</h1></header>
+
+<p>{{.Success}}</p>
+
+{{if .Error}}
+<section class="error"><header><h1>Error</h1></header>
+	<p>{{.Error}}</p>
+</section>
+{{end}}
+
+{{if .GameModes}}
+<section class="modes"><header><h1>Modes</h1></header>
+	<ul>
+		{{range .GameModes}}
+			{{$mode := .}}
+			{{$descriptor := .Descriptor}}
+			{{if $mode.Playable}}
+			<li>
+				{{if $mode.Multigrouped}}
+					<fieldset><legend>{{$descriptor}}</legend>
+					<ul>
+				{{end}}
+				{{range $mode.Groups}}
+					{{if $mode.Multigrouped}}
+					<li>
+					{{end}}
+					<form action="{{$game.Url}}join/" method="post">
+						<input name="mode" value="{{$mode.Identifier}}" type="hidden">
+						<input name="group" value="{{.Identifier}}" type="hidden">
+						<input type="submit" value="{{if $mode.Multigrouped}}{{.Descriptor}}{{else}}{{$descriptor}}{{end}}">
+					</form>
+					{{if $mode.Multigrouped}}
+					</li>
+					{{end}}
+				{{end}}
+				{{if $mode.Multigrouped}}
+					</ul>
+					</fieldset>
+				{{end}}
+			</li>
+			{{end}}
+		{{end}}
+	</ul>
+</section>
+{{end}}
+
+<section><header><h1>Controls</h1></header>
+{{if .Game.Live}}
+<form action="{{.Game.ProjectUrl}}" method="post">
+	<input name="_method" value="put" type="hidden" />
+	<input name="Command" value="NoLive" type="hidden" />
+	<input name="commit" type="submit" value="Take it Down" />
+</form>
+<form action="{{.Game.ProjectUrl}}" method="post">
+	<input name="_method" value="put" type="hidden" />
+	<input name="Command" value="SetCommUrl" type="hidden" />
+	<input id="commurl" name="CommUrl" type="url" />
+	<input name="commit" type="submit" value="Change your Communication URL" />
+</form>
+{{else}}
+{{if .Game.CommUrl}}
+<form action="{{.Game.ProjectUrl}}" method="post">
+	<input name="_method" value="put" type="hidden" />
+	<input name="Command" value="GoLive" type="hidden" />
+	<input name="commit" type="submit" value="Start it back up again (no changes)" />
+</form>
+{{end}}
+<form action="{{.Game.ProjectUrl}}" method="post">
+	<input name="_method" value="put" type="hidden" />
+	<input name="Command" value="SetCommUrl" type="hidden" />
+	<input id="commurl" name="CommUrl" {{if .Game.CommUrl}}value="{{.Game.CommUrl}}" {{end}}type="url" />
+	<input name="commit" type="submit" value="Start it up with this Communication URL" />
+</form>
+{{end}}
+</section>
+
+</article>

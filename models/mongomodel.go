@@ -1,7 +1,9 @@
 package model
 
 import (
+	"../loadconfiguration"
 	"errors"
+	"fmt"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 	"log"
@@ -10,8 +12,8 @@ import (
 var db *mgo.Database
 
 type ValidationError struct {
-	field string
-	err   string
+	Field string
+	Err   string
 }
 
 type ValidationErrors []ValidationError
@@ -24,14 +26,14 @@ func NoErrors() *ValidationErrors {
 func (this ValidationErrors) Error() (result string) {
 	result = "{"
 	for _, err := range this {
-		result += err.field + ":" + err.err
+		result += err.Field + ":" + err.Err
 	}
 	result += "}"
 	return
 }
 
 func (this *ValidationErrors) Add(field, err string) {
-	*this = append(*this, ValidationError{field: field, err: err})
+	*this = append(*this, ValidationError{Field: field, Err: err})
 }
 
 type Model interface {
@@ -93,10 +95,19 @@ func SetUp() {
 }
 
 func init() {
-	session, err := mgo.Dial("localhost")
+	var mongoConfig struct {
+		NetAddress string `json:"netaddr"`
+		DBid       string `json:"dbid"`
+	}
+	mongoConfig.NetAddress = "localhost" //default to localhost
+	configurations.Load("mongo", &mongoConfig)
+	fmt.Println("netaddr:", mongoConfig.NetAddress)
+	fmt.Println("dbid:", mongoConfig.DBid)
+
+	session, err := mgo.Dial(mongoConfig.NetAddress)
 	if err != nil {
 		log.Fatal("Please Launch Mongo before running this\n")
 		panic(err)
 	}
-	db = session.DB("test")
+	db = session.DB(mongoConfig.DBid)
 }

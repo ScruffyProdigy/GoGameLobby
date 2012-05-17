@@ -4,21 +4,26 @@
 	</head>
 	<body>
 		<nav class="login">
-			{{if .CurrentUser}}
-				Logged in as {{.CurrentUser.ClashTag}}
-				<a href="/logout/">Log out</a>
-			{{else}}
-				<ul>
+			<ul>
+				{{if .CurrentUser}}
+					<li>Logged in as <a href="{{.CurrentUser.Url}}">{{.CurrentUser.ClashTag}}</a></li>
+					<li><a href="/logout/">Log out</a></li>
+				{{else}}
 					<li>Log in through <a href="/facebook/login/">Facebook</a></li>
 					<li>Log in through <a href="/google/login/">Google</a></li>
-				</ul>
-			{{end}}
+				{{end}}		
+			</ul>
 		</nav>
-		<ul>
-		{{range .flashes}}
-		<li>{{.}}</li>
+		{{if .flashes}}
+			<section class="flashes">
+				<header><h1>Attention</h1></header>
+				<ul>
+					{{range .flashes}}
+						<li>{{.}}</li>
+					{{end}}
+				</ul>
+			</section>
 		{{end}}
-		</ul>
 		{{.Body}}
 	</body>
 </html>

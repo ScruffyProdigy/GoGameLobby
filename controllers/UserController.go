@@ -25,7 +25,7 @@ func (this UserController) Indexer(s string) (interface{}, bool) {
 	return result, result != nil
 }
 
-func (this UserController) Index() controller.Response {
+func (this UserController) Index() {
 	var users []user.User
 	err := user.U.AllUsers(&users)
 	if err != nil {
@@ -35,22 +35,23 @@ func (this UserController) Index() controller.Response {
 	this.Set("Users", users)
 	this.Set("Title", "Users")
 
-	return this.DefaultResponse()
+	this.Finish()
 }
 
-func (this UserController) Show() controller.Response {
+func (this UserController) Show() {
 	u := this.Get("User").(*user.User)
 
 	this.Set("Title", u.ClashTag)
 
-	return this.DefaultResponse()
+	this.Finish()
 }
 
-func (this UserController) New() controller.Response {
+func (this UserController) New() {
 
 	authorization, isString := this.Session().Clear("authorization").(string)
 	if !isString {
-		return controller.NotAuthorized()
+		this.NotAuthorized()
+		return
 	}
 
 	this.Set("authorization", authorization)
@@ -61,10 +62,10 @@ func (this UserController) New() controller.Response {
 
 	this.Set("Title", "New User")
 
-	return this.DefaultResponse()
+	this.Finish()
 }
 
-func (this UserController) Create() (response controller.Response) {
+func (this UserController) Create() {
 	var authData user.AuthorizationData
 	var err error
 
@@ -82,7 +83,7 @@ func (this UserController) Create() (response controller.Response) {
 		rec := recover()
 		if rec != nil {
 			this.AddFlash("I'm sorry, but there was an error with your form")
-			response = this.MiddlewareResponse(login.NewUserForm(authData))
+			this.FinishWithMiddleware(login.NewUserForm(authData))
 		}
 	}()
 
@@ -96,10 +97,10 @@ func (this UserController) Create() (response controller.Response) {
 		panic(errs)
 	}
 
-	this.Apply(login.LogIn(u))
-	return this.RespondWith(u)
+	(login.V)(this.Vars).LogIn(u)
+	this.RespondWith(u)
 }
 
 func init() {
-	controller.RegisterController(&UserController{}).AddToRoot()
+	controller.RegisterController(&UserController{}).AddTo(Root)
 }

@@ -1,8 +1,11 @@
 package messenger
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type Codec struct {
@@ -11,7 +14,7 @@ type Codec struct {
 	Decode func(io.Reader, interface{}) error
 }
 
-type codecMap map[string]Codec
+type codecMap map[string]*Codec
 
 type message struct {
 	message io.Reader
@@ -20,7 +23,7 @@ type message struct {
 
 var mimeTypes codecMap = make(codecMap)
 
-func RegisterCodec(c Codec) {
+func RegisterCodec(c *Codec) {
 	mimeTypes[c.Mime] = c
 }
 
@@ -38,7 +41,11 @@ func (this Codec) CreateMessage(content interface{}) (*message, error) {
 }
 
 func (this codecMap) DecodeMessage(m message, result interface{}) error {
-	codec := this[m.mime]
+	codecName := strings.Split(m.mime, ";")[0]
+	codec := this[codecName]
+	if codec == nil {
+		return errors.New("Undefinted Codec for: " + m.mime)
+	}
 	return codec.Decode(m.message, result)
 }
 
@@ -47,6 +54,7 @@ func (this message) Read(p []byte) (int, error) {
 }
 
 func (this message) SendTo(url string, mh messageHandler) error {
+	fmt.Println(url)
 	r, err := http.Post(url, this.mime, this)
 	if err != nil {
 		return err

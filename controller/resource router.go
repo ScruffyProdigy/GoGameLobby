@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/HairyMezican/Middleware/router"
+	"github.com/HairyMezican/TheRack/httper"
 	"github.com/HairyMezican/TheRack/rack"
 	"net/http"
 )
@@ -16,8 +17,8 @@ type ModelMap interface {
 	Indexer(string) (interface{}, bool) //We need some way to go from a collection to a specific resource provided by a url - we give you a string, and you tell us if the resource is there, and, if so, what the resource is
 	VarName() string                    // We need somewhere to store the resource you give us, so you can access it later
 	//These are provided by us
-	SetRackFuncVars(ModelMap, *http.Request, rack.Vars)
-	SetDefaultResponse(rack.Next)
+	SetRackFuncVars(ModelMap, map[string]interface{})
+	SetFinish(func())
 }
 
 type ControllerShell struct {
@@ -29,9 +30,9 @@ type splitter struct {
 	get, post, put, delete rack.Middleware
 }
 
-func (this splitter) Run(r *http.Request, vars rack.Vars, next rack.Next) (status int, header http.Header, message []byte) {
+func (this splitter) Run(vars map[string]interface{}, next func()) {
 	var result rack.Middleware
-	switch r.Method {
+	switch (httper.V)(vars).GetRequest().Method {
 	case "GET":
 		result = this.get
 	case "POST":
@@ -41,13 +42,14 @@ func (this splitter) Run(r *http.Request, vars rack.Vars, next rack.Next) (statu
 	case "DELETE":
 		result = this.delete
 	default:
-		return http.StatusBadRequest, make(http.Header), []byte("")
+		(httper.V)(vars).Status(http.StatusBadRequest)
 	}
 	if result == nil {
 		//that particular method wasn't set, but perhaps a later middleware will take care of it
-		return next()
+		next()
+	} else {
+		result.Run(vars, next)
 	}
-	return result.Run(r, vars, next)
 }
 
 type memberSignaler struct {
@@ -55,8 +57,8 @@ type memberSignaler struct {
 	indexer func(string) (interface{}, bool)
 }
 
-func (this memberSignaler) Run(r *http.Request, vars rack.Vars) bool {
-	id := vars.Apply(router.CurrentSection).(string)
+func (this memberSignaler) Run(vars map[string]interface{}) bool {
+	id := (router.V)(vars).CurrentSection()
 	result, found := this.indexer(id)
 	if !found {
 		return false
@@ -72,9 +74,9 @@ type collectionSignaler struct {
 	name string
 }
 
-func (this collectionSignaler) Run(r *http.Request, vars rack.Vars) bool {
-	this.m.SetRackFuncVars(this.m, r, vars)
-	section := vars.Apply(router.CurrentSection).(string)
+func (this collectionSignaler) Run(vars map[string]interface{}) bool {
+	this.m.SetRackFuncVars(this.m, vars)
+	section := (router.V)(vars).CurrentSection()
 	if section == this.name {
 		return true
 	}
@@ -146,10 +148,6 @@ func RegisterController(m ModelMap) *ControllerShell {
 
 func (this ControllerShell) AddTo(superroute *router.Router) {
 	superroute.AddRoute(this.Collection)
-}
-
-func (this ControllerShell) AddToRoot() {
-	router.Root.AddRoute(this.Collection)
 }
 
 func (this ControllerShell) AddAsSubresource(parent *ControllerShell) {

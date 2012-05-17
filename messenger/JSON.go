@@ -33,5 +33,5 @@ var jsoncodec = Codec{
 }
 
 func init() {
-	RegisterCodec(jsoncodec)
+	RegisterCodec(&jsoncodec)
 }

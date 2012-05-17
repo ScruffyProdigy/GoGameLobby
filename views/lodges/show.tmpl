@@ -1,10 +1,14 @@
-<h1>{{.Lodge.Name}}</h1>
+<article><header><h1>{{.Lodge.Name}}</h1></header>
+
+<section><header><h1>Masons</h1></header>
 <p>This Mason Lodge has the following members:</p>
 <ul>
 {{range .Lodge.Masons}}
 <li><a href="/users/{{.}}/">{{.}}</a></li>
 {{end}}
 </ul>
+</section>
+
 {{if .InProgress}}
 <section><header><h1>Current Projects</h1></header>
 <ul>
@@ -22,3 +26,4 @@
 	<input name="commit" type="submit" value="Start Project">
 </form>
 </section>
+</article>

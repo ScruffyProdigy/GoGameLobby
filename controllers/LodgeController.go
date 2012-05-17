@@ -25,7 +25,7 @@ func (this LodgeController) Indexer(s string) (interface{}, bool) {
 	return result, result != nil
 }
 
-func (this LodgeController) Index() controller.Response {
+func (this LodgeController) Index() {
 	var lodges []lodge.Lodge
 	err := lodge.L.AllLodges(&lodges)
 	if err != nil {
@@ -35,10 +35,10 @@ func (this LodgeController) Index() controller.Response {
 	this.Set("Lodges", lodges)
 	this.Set("Title", "Mason Lodges")
 
-	return this.DefaultResponse()
+	this.Finish()
 }
 
-func (this LodgeController) Show() controller.Response {
+func (this LodgeController) Show() {
 	l, isLodge := this.Get("Lodge").(*lodge.Lodge)
 	if !isLodge {
 		panic("Can't find lodge")
@@ -50,17 +50,17 @@ func (this LodgeController) Show() controller.Response {
 	}
 	this.Set("Title", l.Name)
 
-	return this.DefaultResponse()
+	this.Finish()
 }
 
-func (this LodgeController) New() controller.Response {
+func (this LodgeController) New() {
 
 	this.Set("Title", "Create a Mason Lodge")
 
-	return this.DefaultResponse()
+	this.Finish()
 }
 
-func (this LodgeController) Create() (response controller.Response) {
+func (this LodgeController) Create() {
 	defer func() {
 		rec := recover()
 		if rec != nil {
@@ -79,14 +79,14 @@ func (this LodgeController) Create() (response controller.Response) {
 				this.AddFlash(str)
 			}
 			this.AddFlash("You fucked something up, please try again")
-			response = this.Redirection("/lodges/new")
+			this.RedirectTo("/lodges/new")
 		}
 	}()
 
 	l := lodge.NewLodge()
 
 	l.Name = urlify(this.GetFormValue("Lodge[Name]"))
-	user, loggedIn := login.CurrentUser(this.Vars)
+	user, loggedIn := (login.V)(this.Vars).CurrentUser()
 	if !loggedIn {
 		panic("you must be logged in to create a mason lodge")
 	}
@@ -97,12 +97,12 @@ func (this LodgeController) Create() (response controller.Response) {
 		panic(errs)
 	}
 
-	return this.RespondWith(l)
+	this.RespondWith(l)
 }
 
 var Lodge *controller.ControllerShell
 
 func init() {
 	Lodge = controller.RegisterController(&LodgeController{})
-	Lodge.AddToRoot()
+	Lodge.AddTo(Root)
 }

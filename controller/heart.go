@@ -4,76 +4,84 @@ import (
 	"github.com/HairyMezican/Middleware/redirecter"
 	"github.com/HairyMezican/Middleware/renderer"
 	"github.com/HairyMezican/Middleware/sessioner"
+	"github.com/HairyMezican/TheRack/httper"
 	"github.com/HairyMezican/TheRack/rack"
 	"net/http"
+	"strings"
 )
 
 // When Creating a Controller, you MUST put an anonymous controller.Heart into your controller (unless you really know what you're doing)
 // Not only do some of the functions require some a couple of the default methods
 type Heart struct {
-	m    ModelMap
-	R    *http.Request
-	Vars rack.Vars
-	Next rack.Next
+	m      ModelMap
+	Vars   map[string]interface{}
+	Finish func()
 }
 
 // this is how we hide the rack variables from the controllers who don't really care so much about these
 // they are later accessible in case you need them, but for the most part, you can just ignore these
-func (this *Heart) SetRackFuncVars(m ModelMap, r *http.Request, vars rack.Vars) {
+func (this *Heart) SetRackFuncVars(m ModelMap, vars map[string]interface{}) {
 	this.m = m
-	this.R = r
 	this.Vars = vars
 }
 
 // this sets the default response that the controller will give
 // by default, this will lead to rendering for any GET requests, and redirection for PUT and POST
 // DELETE is currently not implemented
-func (this *Heart) SetDefaultResponse(next rack.Next) {
-	this.Next = next
+func (this *Heart) SetFinish(action func()) {
+	this.Finish = action
 }
 
 // if you are calling another Rack Middleware, you should call this function to get the variables it will need to run
-func (this Heart) GetRackFuncVars() (r *http.Request, vars rack.Vars, next rack.Next) {
-	return this.R, this.Vars, this.Next
-}
-
-// this should be the return value for most of your control function
-// by default, this will lead to rendering for any GET requests, and redirection for PUT and POST
-// DELETE is currently not implemented
-func (this Heart) DefaultResponse() Response {
-	return FromRack(this.Next())
+func (this Heart) GetRackFuncVars() (vars map[string]interface{}, next func()) {
+	return this.Vars, this.Finish
 }
 
 // this should be the return value for most of your Create control functions
 // you should pass it the resource you created
 // since the default variable wasn't set because we didn't get into a specific resource
 // this will set the default variable to the resource you just created
-func (this Heart) RespondWith(object interface{}) Response {
+func (this Heart) RespondWith(object interface{}) {
 	this.Vars[this.m.VarName()] = object
-	return this.DefaultResponse()
+	this.Finish()
 }
 
 // if you have a piece of middleware that you want to respond with
-// return this instead of DefaultResponse along with the middleware you want to run
-func (this Heart) MiddlewareResponse(m rack.Middleware) Response {
-	return FromRack(m.Run(this.GetRackFuncVars()))
+// return this instead of Finish along with the middleware you want to run
+func (this Heart) FinishWithMiddleware(m rack.Middleware) {
+	m.Run(this.GetRackFuncVars())
 }
 
 // if things don't go according to plan, you can redirect somewhere else
-// return this instead of DefaultResponse along with where you want to redirect to
-func (this Heart) Redirection(url string) Response {
-	return FromRack(redirecter.Redirect(this.R, this.Vars, url))
+// return this instead of Finish along with where you want to redirect to
+func (this Heart) RedirectTo(url string) {
+	(redirecter.V)(this.Vars).Redirect(url)
 }
 
 // use this if you want to render something other than the default template
-// return this instead of DefaultResponse along with the template you want to render
-func (this Heart) Rendering(tmpl string) Response {
-	return FromRack(renderer.Render(tmpl, this.Vars))
+// return this instead of Finish along with the template you want to render
+func (this Heart) Render(tmpl string) {
+	if !strings.Contains(tmpl, "/") {
+		tmpl = this.m.RouteName() + "/" + tmpl
+	}
+	(renderer.V)(this.Vars).Render(tmpl)
+}
+
+func (this Heart) AddFlash(flash string) {
+	(sessioner.V)(this.Vars).AddFlash(flash)
+}
+
+func (this Heart) Session() sessioner.V {
+	return (sessioner.V)(this.Vars)
 }
 
 // this will get the form value from the form that was passed in
 func (this Heart) GetFormValue(value string) string {
-	return this.R.FormValue(value)
+	return (httper.V)(this.Vars).GetRequest().FormValue(value)
+}
+
+func (this Heart) NotAuthorized() {
+	(httper.V)(this.Vars).Status(http.StatusUnauthorized)
 }
 
 // this is used to set variables
@@ -86,29 +94,4 @@ func (this Heart) Set(k string, v interface{}) {
 // the most common variable to get is the one we stored for you for all member methods
 func (this Heart) Get(k string) interface{} {
 	return this.Vars[k]
-}
-
-// if you want to apply any rack.VarFunc's, you can use this function
-// look at the rack documentation if you don't know what this means
-func (this Heart) Apply(f rack.VarFunc) interface{} {
-	return this.Vars.Apply(f)
-}
-
-// this will get you a session variable
-// look at the session documentation to figure out what you can do with it
-func (this Heart) Session() sessioner.Session {
-	return this.Vars["session"].(sessioner.Session)
-}
-
-// this will add a flash to the list of flashes
-// flashes are typically used before redirecting
-// all flashes stored before redirecting are available only after the next redirect, and are then immediately erased
-func (this Heart) AddFlash(flash string) {
-	this.Apply(sessioner.AddFlash(flash))
-}
-
-// this will get access to all of the flashes stored before the last redirect
-// they are also accessible within a template via {{.flashes}}
-func (this Heart) GetFlashes() []string {
-	return this.Vars["flashes"].([]string)
 }

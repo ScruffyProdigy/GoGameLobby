@@ -1,7 +1,8 @@
 package main
 
 import (
-	_ "./controllers"
+	"./controllers"
+	"./defaulter"
 	"./loadconfiguration"
 	"./login"
 	"./models"
@@ -9,12 +10,15 @@ import (
 	"github.com/HairyMezican/Middleware/encapsulator"
 	"github.com/HairyMezican/Middleware/errorhandler"
 	"github.com/HairyMezican/Middleware/interceptor"
+	"github.com/HairyMezican/Middleware/logger"
+	"github.com/HairyMezican/Middleware/methoder"
 	"github.com/HairyMezican/Middleware/oauther"
 	"github.com/HairyMezican/Middleware/oauther/facebooker"
 	"github.com/HairyMezican/Middleware/oauther/googleplusser"
-	"github.com/HairyMezican/Middleware/router"
+	"github.com/HairyMezican/Middleware/parser"
 	"github.com/HairyMezican/Middleware/sessioner"
 	"github.com/HairyMezican/Middleware/statuser"
+	"github.com/HairyMezican/TheRack/httper"
 	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/TheTemplater/templater"
 	"log"
@@ -66,22 +70,21 @@ func main() {
 	//load the templates for the views
 	templater.LoadFromFiles("./views", log.New(os.Stdout, "template - ", log.LstdFlags))
 
-	//set up default variables
-	defaults := rack.NewVars()
-	defaults["Layout"] = "base"
-
 	//set up the rack
-	rack.Up.Add(defaults)
-	rack.Up.Add(encapsulator.AddLayout)
-	rack.Up.Add(statuser.SetErrorLayout)
+	rackup := rack.New()
+	rackup.Add(logger.Set(os.Stdout, "Log Test - ", log.LstdFlags))
+	rackup.Add(defaulter.V{"Layout": "base"})
+	rackup.Add(encapsulator.AddLayout)
+	rackup.Add(statuser.SetErrorLayout)
 	if mode != debug {
-		rack.Up.Add(errorhandler.ErrorHandler) //in debug version, it's more useful to just let it crash, so we can get more error information
+		rackup.Add(errorhandler.ErrorHandler) //in debug version, it's more useful to just let it crash, so we can get more error information
 	}
-	rack.Up.Add(sessioner.Middleware)
-	rack.Up.Add(login.Middleware)
-	rack.Up.Add(cept)
-	rack.Up.Add(router.Parser)
-	rack.Up.Add(router.Root)
+	rackup.Add(parser.Form)
+	rackup.Add(methoder.Override)
+	rackup.Add(sessioner.Middleware)
+	rackup.Add(login.Middleware)
+	rackup.Add(cept)
+	rackup.Add(controllers.Root)
 
 	//alert the user as to where we are running
 	var site = ":80"
@@ -90,10 +93,11 @@ func main() {
 	}
 
 	fmt.Print("\n\nStarting at localhost" + site + "!\n\n\n")
+	conn := httper.HttpConnection(site)
+	err := conn.Go(rackup)
 
 	//We're ready to go!
 	//run each request through the rack!
-	err := rack.Run(rack.HttpConnection(site), rack.Up)
 	if err != nil {
 		fmt.Print("Error: " + err.Error())
 	}
