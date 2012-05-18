@@ -74,6 +74,11 @@ func main() {
 	//set up the rack
 	rackup := rack.New()
 	rackup.Add(logger.Set(os.Stdout, "Log Test - ", log.LstdFlags))
+	rackup.Add(rack.Func(func(vars map[string]interface{}, next func()) {
+		r := (httper.V)(vars).GetRequest()
+		(logger.V)(vars).Get().Println(r.Method, r.URL.String())
+		next()
+	}))
 	rackup.Add(defaulter.V{"Layout": "base"})
 	rackup.Add(encapsulator.AddLayout)
 	rackup.Add(statuser.SetErrorLayout)

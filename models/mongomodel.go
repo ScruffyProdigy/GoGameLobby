@@ -3,7 +3,6 @@ package model
 import (
 	"../loadconfiguration"
 	"errors"
-	"fmt"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 	"log"
@@ -101,8 +100,6 @@ func init() {
 	}
 	mongoConfig.NetAddress = "localhost" //default to localhost
 	configurations.Load("mongo", &mongoConfig)
-	fmt.Println("netaddr:", mongoConfig.NetAddress)
-	fmt.Println("dbid:", mongoConfig.DBid)
 
 	session, err := mgo.Dial(mongoConfig.NetAddress)
 	if err != nil {

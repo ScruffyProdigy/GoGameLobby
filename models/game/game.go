@@ -7,7 +7,6 @@ import (
 	"../../redis"
 	"../lodge"
 	"../user"
-	"errors"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
 )
@@ -142,7 +141,7 @@ func (this *Game) GetJoinModes(u *user.User, mode string, group string) (map[str
 
 func (this *Game) StartClash(mode string, PreStart map[string]map[string]string) (gamedata.StartInfo, error) {
 	var Data struct {
-		Start gamedata.PreStartInfo `json:"startinfo"`
+		Start gamedata.PreStartInfo `json:"start"`
 	}
 
 	Data.Start.Mode = mode
@@ -168,161 +167,12 @@ func (this *Game) StartClash(mode string, PreStart map[string]map[string]string)
 	return Result, err
 }
 
-func (this *Game) getMode(mode string) Mode {
+func (this *Game) GetMode(mode string) Mode {
 	m, ok := this.Modes[mode]
 	if !ok {
 		m = this.SetUpMode(mode)
 	}
 	return m
-}
-
-func (this *Game) startMode(mode string) (restart bool) {
-	game := this.Name
-	m := this.getMode(mode)
-
-	var startInfo gamedata.StartInfo
-	var err error
-	start := QueueMutex.Write.Try(func() {
-		preStartInfo := make(map[string]map[string]string)
-		for group, full := range m.GroupCount {
-			preStartInfo[group] = make(map[string]string)
-			for i := 0; i < full; i++ {
-				user := pullFromQueue(game, mode, group)
-				join := takeJoinOptions(user, game, mode)
-				preStartInfo[group][user] = join
-				removeFromMode(game, mode, user)
-			}
-		}
-
-		startInfo, err = this.StartClash(mode, preStartInfo)
-		if err != nil {
-			//there was an error trying to start the clash, put everybody back in the queue
-			for group, players := range preStartInfo {
-				for user, join := range players {
-					addToMode(user, game, mode)
-					jumpTheQueue(user, game, mode, group)
-					setJoinOptions(user, game, mode, join)
-				}
-			}
-		}
-	})
-
-	if err != nil {
-		return
-	}
-
-	if start {
-		// we've loaded the players in the queue, time to start it
-		sendStartMessages(startInfo)
-		return false
-	}
-
-	// somebody else was trying to start a game, loop through again to check to see if the game can start
-	return true
-}
-
-func (this *Game) checkForStart(mode string) {
-	game := this.Name
-	m := this.getMode(mode)
-
-	start := true
-
-	trying := true
-
-	for trying {
-		//if the queue is long enough to start, start it
-		QueueMutex.Read.Force(func() {
-			for group, full := range m.GroupCount {
-				count := int(queueLength(game, mode, group))
-				if count < full {
-					start = false
-					return
-				}
-			}
-		})
-
-		if !start {
-			return
-		}
-
-		trying = this.startMode(mode)
-	}
-
-}
-
-func (this *Game) AddToQueue(user, mode, group, join string) (err error) {
-
-	defer func() {
-		rec := recover()
-		if rec != nil {
-			if e, ok := rec.(error); ok {
-				err = e
-				return
-			}
-			if str, ok := rec.(string); ok {
-				err = errors.New(str)
-				return
-			}
-			err = errors.New("UnknownError")
-			return
-		}
-	}()
-
-	game := this.Name
-
-	//add the user to the set of players queuing for a clash (and find out if they're already on the list)
-	isNew := addToMode(user, this.Name, mode)
-	if !isNew {
-		m := this.getMode(mode)
-		//the player is already part of the game, remove them from their old queue first
-		for group, _ := range m.GroupCount {
-			if removeFromQueue(user, game, mode, group) {
-				break
-			}
-		}
-	}
-
-	//add the user to the queue
-	addToQueue(user, game, mode, group)
-	setJoinOptions(user, game, mode, join)
-
-	go this.checkForStart(mode)
-
-	return nil
-}
-
-func (this *Game) RemoveFromQueue(user, mode string) (err error) {
-	defer func() {
-		rec := recover()
-		if rec != nil {
-			if e, ok := rec.(error); ok {
-				err = e
-				return
-			}
-			if str, ok := rec.(string); ok {
-				err = errors.New(str)
-				return
-			}
-			err = errors.New("UnknownError")
-			return
-		}
-	}()
-
-	m := this.getMode(mode)
-	game := this.Name
-
-	if !removeFromMode(user, game, mode) {
-		//not in this mode
-		return
-	}
-	for group, _ := range m.GroupCount {
-		if removeFromQueue(user, game, mode, group) {
-			break
-		}
-	}
-	takeJoinOptions(user, game, mode)
-
-	return nil
 }
 
 func (this *Game) SetUpMode(mode string) Mode {

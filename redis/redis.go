@@ -2,7 +2,6 @@ package redis
 
 import (
 	"../loadconfiguration"
-	"fmt"
 	"github.com/simonz05/godis/redis"
 )
 
@@ -30,8 +29,6 @@ func init() {
 
 	test, err := Client.Echo("test")
 	if err != nil || test.String() != "test" {
-		fmt.Println("Err:", err)
-		fmt.Println("Test:", test.String())
 		panic("Please run Redis before executing this")
 	}
 }

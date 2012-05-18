@@ -2,7 +2,6 @@ package messenger
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -54,7 +53,6 @@ func (this message) Read(p []byte) (int, error) {
 }
 
 func (this message) SendTo(url string, mh messageHandler) error {
-	fmt.Println(url)
 	r, err := http.Post(url, this.mime, this)
 	if err != nil {
 		return err

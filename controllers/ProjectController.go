@@ -6,7 +6,6 @@ import (
 	"../models"
 	"../models/game"
 	"../models/lodge"
-	"fmt"
 	"github.com/HairyMezican/Middleware/logger"
 )
 
@@ -27,7 +26,6 @@ type groupDisplay struct {
 }
 
 func (this modeDisplay) Playable() bool {
-	fmt.Println("Playable:", len(this.Groups) > 0)
 	return len(this.Groups) > 0
 }
 
@@ -223,7 +221,7 @@ func (this ProjectController) join(mode, group, join string) {
 	g, _ := this.Get("Game").(*game.Game)
 	u, _ := (login.V)(this.Vars).CurrentUser()
 
-	g.AddToQueue(u.ClashTag, mode, group, join)
+	game.AddToQueue(u.ClashTag, g.Name, mode, group, join, g.GetMode(mode))
 
 	this.RedirectTo(g.Url())
 }
