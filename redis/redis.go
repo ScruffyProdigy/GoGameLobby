@@ -13,6 +13,8 @@ type redisConfig struct {
 	Password   string `json:"password"`
 }
 
+var config redisConfig
+
 func (r redisConfig) Redis() *redis.Client {
 	return redis.New(
 		r.NetAddress,
@@ -21,9 +23,12 @@ func (r redisConfig) Redis() *redis.Client {
 	)
 }
 
-func init() {
-	var config redisConfig
+func Subscribe(url string) (*redis.Sub, error) {
+	r := config.Redis()
+	return r.Subscribe(url)
+}
 
+func init() {
 	configurations.Load("redis", &config)
 	Client = config.Redis()
 

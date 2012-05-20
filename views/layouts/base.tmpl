@@ -1,6 +1,10 @@
 <html>
 	<head>
 		<title>{{if .Title}}{{.Title}}{{else}}ClashCentral!{{end}}</title>
+		<script type='text/javascript'>
+			c=new WebSocket('ws://localhost:3000');
+			c.onmessage=function(msg){alert(msg)}
+		</script>
 	</head>
 	<body>
 		<nav class="login">

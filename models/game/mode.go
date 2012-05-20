@@ -6,37 +6,38 @@ import (
 	"fmt"
 )
 
-func startMode(game, mode string, m Mode) (restart bool) {
+type Mode struct {
+	game       string
+	mode       string
+	GroupCount map[string]int //a list of the groups needed for the mode, and the number of people needed to fill the group
+}
+
+func (m Mode) start() (restart bool) {
 	var startInfo gamedata.StartInfo
 	var err error
 	start := QueueMutex.Write.Try(func() {
 		preStartInfo := make(map[string]map[string]string)
 		for group, full := range m.GroupCount {
-			fmt.Print("-Forming", group)
 			preStartInfo[group] = make(map[string]string)
 			for i := 0; i < full; i++ {
-				user := pullFromQueue(game, mode, group)
-				join := takeJoinOptions(user, game, mode)
-				fmt.Println("--Adding", user, "with", join)
+				user := pullFromQueue(m.game, m.mode, group)
+				join := takeJoinOptions(user, m.game, m.mode)
 				preStartInfo[group][user] = join
-				removeFromMode(user, game, mode)
+				removeFromMode(user, m.game, m.mode)
 			}
 		}
 
-		model := G.GameFromName(game)
-		startInfo, err = model.StartClash(mode, preStartInfo)
+		model := G.GameFromName(m.game)
+		startInfo, err = model.StartClash(m.mode, preStartInfo)
 		if err != nil {
-			fmt.Println("Error:", err.Error())
 			//there was an error trying to start the clash, put everybody back in the queue
 			for group, players := range preStartInfo {
 				for user, join := range players {
-					addToMode(user, game, mode)
-					jumpTheQueue(user, game, mode, group)
-					setJoinOptions(user, game, mode, join)
+					addToMode(user, m.game, m.mode)
+					jumpTheQueue(user, m.game, m.mode, group)
+					setJoinOptions(user, m.game, m.mode, join)
 				}
 			}
-		} else {
-			fmt.Println("Success!")
 		}
 	})
 
@@ -54,7 +55,7 @@ func startMode(game, mode string, m Mode) (restart bool) {
 	return true
 }
 
-func checkForStart(game, mode string, m Mode) {
+func (m Mode) checkForStart() {
 
 	start := true
 	trying := true
@@ -62,11 +63,8 @@ func checkForStart(game, mode string, m Mode) {
 	for trying {
 		//if the queue is long enough to start, start it
 		QueueMutex.Read.Force(func() {
-			fmt.Println("Checking Start for", game, mode)
 			for group, full := range m.GroupCount {
-				count := int(queueLength(game, mode, group))
-				fmt.Println("Testing group:", group)
-				fmt.Println(count, "vs", full)
+				count := int(queueLength(m.game, m.mode, group))
 				if count < full {
 					start = false
 					return
@@ -78,13 +76,13 @@ func checkForStart(game, mode string, m Mode) {
 			return
 		}
 
-		fmt.Println("starting!")
-		trying = startMode(game, mode, m)
+		fmt.Println("starting", m.mode)
+		trying = m.start()
 	}
 
 }
 
-func AddToQueue(user, game, mode, group, join string, m Mode) (err error) {
+func (m Mode) AddToQueue(user, group, join string) (err error) {
 
 	defer func() {
 		rec := recover()
@@ -103,26 +101,26 @@ func AddToQueue(user, game, mode, group, join string, m Mode) (err error) {
 	}()
 
 	//add the user to the set of players queuing for a clash (and find out if they're already on the list)
-	isNew := addToMode(user, game, mode)
+	isNew := addToMode(user, m.game, m.mode)
 	if !isNew {
 		//the player is already part of the game, remove them from their old queue first
 		for group, _ := range m.GroupCount {
-			if removeFromQueue(user, game, mode, group) {
+			if removeFromQueue(user, m.game, m.mode, group) {
 				break
 			}
 		}
 	}
 
 	//add the user to the queue
-	addToQueue(user, game, mode, group)
-	setJoinOptions(user, game, mode, join)
+	addToQueue(user, m.game, m.mode, group)
+	setJoinOptions(user, m.game, m.mode, join)
 
-	go checkForStart(game, mode, m)
+	go m.checkForStart()
 
 	return nil
 }
 
-func RemoveFromQueue(user, game, mode string, m Mode) (err error) {
+func (m Mode) RemoveFromQueue(user string) (err error) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
@@ -139,16 +137,26 @@ func RemoveFromQueue(user, game, mode string, m Mode) (err error) {
 		}
 	}()
 
-	if !removeFromMode(user, game, mode) {
+	if !removeFromMode(user, m.game, m.mode) {
 		//not in this mode
 		return
 	}
 	for group, _ := range m.GroupCount {
-		if removeFromQueue(user, game, mode, group) {
+		if removeFromQueue(user, m.game, m.mode, group) {
 			break
 		}
 	}
-	takeJoinOptions(user, game, mode)
+	takeJoinOptions(user, m.game, m.mode)
 
+	return nil
+}
+
+func RemoveFromAllQueues(user string) (err error) {
+	fmt.Println("Logging", user, "out from all games")
+	queues := GetUserQueues(user)
+	for _, queue := range queues {
+		mode, _ := queue.Game.GetMode(queue.Mode)
+		mode.RemoveFromQueue(user)
+	}
 	return nil
 }

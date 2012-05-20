@@ -221,7 +221,12 @@ func (this ProjectController) join(mode, group, join string) {
 	g, _ := this.Get("Game").(*game.Game)
 	u, _ := (login.V)(this.Vars).CurrentUser()
 
-	game.AddToQueue(u.ClashTag, g.Name, mode, group, join, g.GetMode(mode))
+	m, err := g.GetMode(mode)
+	if err != nil {
+		this.AddFlash("Unable to join the game right now")
+	} else {
+		m.AddToQueue(u.ClashTag, group, join)
+	}
 
 	this.RedirectTo(g.Url())
 }

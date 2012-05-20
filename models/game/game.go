@@ -4,7 +4,6 @@ import (
 	"../"
 	"../../gamedata"
 	"../../messenger"
-	"../../redis"
 	"../lodge"
 	"../user"
 	"launchpad.net/mgo"
@@ -16,15 +15,9 @@ const (
 )
 
 var G = new(GameCollection)
-var QueueMutex *redis.ReadWriteMutex
 
 func init() {
 	model.RegisterModel(G)
-	var err error
-	QueueMutex, err = redis.RWMutex("QueueMutex", 16)
-	if err != nil {
-		panic("Couldn't set up Queue Mutex")
-	}
 }
 
 /*
@@ -41,11 +34,7 @@ type Game struct {
 	Lodge     string //could use ObjectID, but putting in the name allows us to not need to load the lodge into memory quite as often
 	//downside is, if the lodge gets renamed, we'll have to readjust all of the games that point to it
 	CommUrl string
-	Modes   map[string]Mode
-}
-
-type Mode struct {
-	GroupCount map[string]int //a list of the groups needed for the mode, and the number of people needed to fill the group
+	Modes   map[string]*Mode
 }
 
 func NewGame() *Game {
@@ -167,30 +156,43 @@ func (this *Game) StartClash(mode string, PreStart map[string]map[string]string)
 	return Result, err
 }
 
-func (this *Game) GetMode(mode string) Mode {
+func (this *Game) GetMode(mode string) (*Mode, error) {
 	m, ok := this.Modes[mode]
 	if !ok {
-		m = this.SetUpMode(mode)
+		var err error
+		m, err = this.SetUpMode(mode)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return m
+	m.game = this.Name
+	m.mode = mode
+	return m, nil
 }
 
-func (this *Game) SetUpMode(mode string) Mode {
+func (this *Game) SetUpMode(mode string) (*Mode, error) {
 	playercounts, err := this.GetPlayerCounts(mode)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if this.Modes == nil {
-		this.Modes = make(map[string]Mode)
+		this.Modes = make(map[string]*Mode)
 	}
-	this.Modes[mode] = Mode{
-		GroupCount: playercounts.Players,
-	}
+
+	m := new(Mode)
+	m.GroupCount = playercounts.Players
+
+	this.Modes[mode] = m
 
 	model.Save(this)
 
-	return this.Modes[mode]
+	return m, nil
+}
+
+func (this *Game) ClearModes() {
+	this.Modes = nil
+	model.Save(this)
 }
 
 /*

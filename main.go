@@ -7,6 +7,8 @@ import (
 	"./loadconfiguration"
 	"./login"
 	"./models"
+	"./requestlogger"
+	"./websocketcontrol"
 	"fmt"
 	"github.com/HairyMezican/Middleware/encapsulator"
 	"github.com/HairyMezican/Middleware/errorhandler"
@@ -19,6 +21,7 @@ import (
 	"github.com/HairyMezican/Middleware/parser"
 	"github.com/HairyMezican/Middleware/sessioner"
 	"github.com/HairyMezican/Middleware/statuser"
+	"github.com/HairyMezican/Middleware/websocketer"
 	"github.com/HairyMezican/TheRack/httper"
 	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/TheTemplater/templater"
@@ -49,6 +52,13 @@ func LoadGoogleData() (result googleplusser.Data) {
 	return
 }
 
+type TestDisplay string
+
+func (this TestDisplay) Run(vars map[string]interface{}, next func()) {
+	fmt.Println(this)
+	next()
+}
+
 func main() {
 
 	//set up the models
@@ -71,26 +81,27 @@ func main() {
 	//load the templates for the views
 	templater.LoadFromFiles("./views", log.New(os.Stdout, "template - ", log.LstdFlags))
 
+	ws := websocketer.New()
+	ws.OnOpen(websocketcontrol.OpenUp)
+	ws.OnClose(websocketcontrol.CloseDown)
+
 	//set up the rack
 	rackup := rack.New()
 	rackup.Add(logger.Set(os.Stdout, "Log Test - ", log.LstdFlags))
-	rackup.Add(rack.Func(func(vars map[string]interface{}, next func()) {
-		r := (httper.V)(vars).GetRequest()
-		(logger.V)(vars).Get().Println(r.Method, r.URL.String())
-		next()
-	}))
+	rackup.Add(requestlogger.M)
 	rackup.Add(defaulter.V{"Layout": "base"})
 	rackup.Add(encapsulator.AddLayout)
 	rackup.Add(statuser.SetErrorLayout)
 	if mode != debug {
 		rackup.Add(errorhandler.ErrorHandler) //in debug version, it's more useful to just let it crash, so we can get more error information
 	}
-	rackup.Add(parser.Form)
-	rackup.Add(methoder.Override)
 	rackup.Add(sessioner.Middleware)
 	rackup.Add(login.Middleware)
-	rackup.Add(clashgetter.QueueGetter)
+	rackup.Add(ws)
+	rackup.Add(parser.Form)
+	rackup.Add(methoder.Override)
 	rackup.Add(cept)
+	rackup.Add(clashgetter.QueueGetter)
 	rackup.Add(controllers.Root)
 
 	//alert the user as to where we are running

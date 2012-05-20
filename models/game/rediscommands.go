@@ -2,10 +2,21 @@ package game
 
 import (
 	"../../gamedata"
+	"../../pubsuber"
 	"../../redis"
 	neturl "net/url"
 	"strings"
 )
+
+var QueueMutex *redis.ReadWriteMutex
+
+func init() {
+	var err error
+	QueueMutex, err = redis.RWMutex("QueueMutex", 16)
+	if err != nil {
+		panic("Couldn't set up Queue Mutex")
+	}
+}
 
 func usersIndex(user string) string {
 	return "users" + sEp + user + sEp + "queues"
@@ -19,10 +30,6 @@ func joinIndex(game, mode, user string) string {
 	return "queues" + sEp + game + sEp + mode + sEp + "players" + sEp + user
 }
 
-func startGameForUser(player string, url string) {
-	redis.Client.Publish("Users:"+player, "Start:"+url)
-}
-
 func sendStartMessage(user string, url string, options map[string]string) {
 	urlvals := make(neturl.Values)
 	for k, v := range options {
@@ -34,7 +41,7 @@ func sendStartMessage(user string, url string, options map[string]string) {
 		url += "?" + query
 	}
 
-	startGameForUser(user, url)
+	pubsuber.User(user).SendMessage("Start:" + url)
 }
 
 func sendStartMessages(startInfo gamedata.StartInfo) {
@@ -49,7 +56,8 @@ type UserQueue struct {
 }
 
 func GetUserQueues(user string) (result []UserQueue) {
-	reply, err := redis.Client.Smembers(usersIndex(user))
+	index := usersIndex(user)
+	reply, err := redis.Client.Smembers(index)
 	if err != nil {
 		panic(err)
 	}
