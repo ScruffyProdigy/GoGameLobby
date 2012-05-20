@@ -122,6 +122,7 @@ func (this ProjectController) Update() {
 		g.Live = true
 	case "NoLive":
 		g.Live = false
+		g.Modes = nil
 	case "SetCommUrl":
 		g.CommUrl = this.GetFormValue("CommUrl")
 		g.Live = true
