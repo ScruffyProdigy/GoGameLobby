@@ -11,15 +11,6 @@ import (
 a ResourceRouter assumes that it represents a RESTful resource, and will process it as such
 it also allows you to add non-RESTful member and collection routes by exposing a route branch for each
 */
-type ModelMap interface {
-	//These are provided by you
-	RouteName() string                  // We need a way to know whether or not a url is trying to access your resource; tell us what route you want to lay claim to
-	Indexer(string) (interface{}, bool) //We need some way to go from a collection to a specific resource provided by a url - we give you a string, and you tell us if the resource is there, and, if so, what the resource is
-	VarName() string                    // We need somewhere to store the resource you give us, so you can access it later
-	//These are provided by us
-	SetRackFuncVars(ModelMap, map[string]interface{})
-	SetFinish(func())
-}
 
 type ControllerShell struct {
 	Collection *router.Router //you can add non-RESTful collection-level routes here
@@ -54,12 +45,12 @@ func (this splitter) Run(vars map[string]interface{}, next func()) {
 
 type memberSignaler struct {
 	varName string
-	indexer func(string) (interface{}, bool)
+	indexer func(string, map[string]interface{}) (interface{}, bool)
 }
 
 func (this memberSignaler) Run(vars map[string]interface{}) bool {
 	id := (router.V)(vars).CurrentSection()
-	result, found := this.indexer(id)
+	result, found := this.indexer(id, vars)
 	if !found {
 		return false
 	}
@@ -70,12 +61,10 @@ func (this memberSignaler) Run(vars map[string]interface{}) bool {
 }
 
 type collectionSignaler struct {
-	m    ModelMap
 	name string
 }
 
 func (this collectionSignaler) Run(vars map[string]interface{}) bool {
-	this.m.SetRackFuncVars(this.m, vars)
 	section := (router.V)(vars).CurrentSection()
 	if section == this.name {
 		return true
@@ -107,37 +96,30 @@ func AddMapListRoutes(superroute *router.Router, maplist mapList) {
 	AddMapRoutes(superroute, maplist.all, router.All)
 }
 
-func RegisterController(m ModelMap) *ControllerShell {
+func RegisterController(m ModelMap, routeName, varName string, indexer func(s string, vars map[string]interface{}) (interface{}, bool)) *ControllerShell {
 	resource := new(ControllerShell)
 
-	restfuncs := GetRestMap(m)
-	memberfuncs := GetGenericMapList(m, "Member")
-	collectionfuncs := GetGenericMapList(m, "Collection")
+	descriptor := createDescriptor(m, routeName, varName)
+
+	restfuncs := descriptor.GetRestMap()
+	memberfuncs := descriptor.GetGenericMapList("Member")
+	collectionfuncs := descriptor.GetGenericMapList("Collection")
 
 	resource.Member = router.NewRouter()
-	resource.Member.Routing = memberSignaler{varName: m.VarName(), indexer: func(s string) (interface{}, bool) {
-		return m.Indexer(s)
-	}}
-	memberRouter := splitter{}
-	memberRouter.get = restfuncs["Show"]
-	memberRouter.put = restfuncs["Update"]
-	memberRouter.delete = restfuncs["Destroy"]
-	resource.Member.Action = memberRouter
+	resource.Member.Routing = memberSignaler{varName: varName, indexer: indexer}
+	resource.Member.Action = splitter{get: restfuncs["show"], put: restfuncs["update"], delete: restfuncs["destroy"]}
 
 	if restfuncs["Edit"] != nil {
-		memberfuncs.get["Edit"] = restfuncs["Edit"]
+		memberfuncs.get["Edit"] = restfuncs["edit"]
 	}
 	AddMapListRoutes(resource.Member, memberfuncs)
 
 	resource.Collection = router.NewRouter()
-	resource.Collection.Routing = collectionSignaler{m: m, name: m.RouteName()}
-	collectionRouter := splitter{}
-	collectionRouter.get = restfuncs["Index"]
-	collectionRouter.post = restfuncs["Create"]
-	resource.Collection.Action = collectionRouter
+	resource.Collection.Routing = collectionSignaler{name: routeName}
+	resource.Collection.Action = splitter{get: restfuncs["index"], post: restfuncs["create"]}
 
 	if restfuncs["New"] != nil {
-		collectionfuncs.get["New"] = restfuncs["New"]
+		collectionfuncs.get["New"] = restfuncs["new"]
 	}
 	AddMapListRoutes(resource.Collection, collectionfuncs)
 

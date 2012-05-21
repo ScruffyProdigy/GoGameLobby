@@ -12,19 +12,6 @@ type UserController struct {
 	controller.Heart
 }
 
-func (UserController) RouteName() string {
-	return "users"
-}
-
-func (UserController) VarName() string {
-	return "User"
-}
-
-func (this UserController) Indexer(s string) (interface{}, bool) {
-	result := user.U.UserFromClashTag(s)
-	return result, result != nil
-}
-
 func (this UserController) Index() {
 	var users []user.User
 	err := user.U.AllUsers(&users)
@@ -102,5 +89,8 @@ func (this UserController) Create() {
 }
 
 func init() {
-	controller.RegisterController(&UserController{}).AddTo(Root)
+	controller.RegisterController(&UserController{}, "users", "User", func(s string, vars map[string]interface{}) (interface{}, bool) {
+		result := user.U.UserFromClashTag(s)
+		return result, result != nil
+	}).AddTo(Root)
 }

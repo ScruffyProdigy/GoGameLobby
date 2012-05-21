@@ -9,14 +9,47 @@ import (
 	"strings"
 )
 
+type Urler interface {
+	Url() string
+}
+
 type dispatchAction struct {
-	m      ModelMap
+	descriptor
 	name   string
 	action rack.Middleware
 }
 
-type Urler interface {
-	Url() string
+type descriptor struct {
+	t                  reflect.Type
+	varName, routeName string
+}
+
+func createDescriptor(iface interface{}, routeName, varName string) descriptor {
+	pv := reflect.ValueOf(iface)
+	v := reflect.Indirect(pv)
+	return descriptor{
+		t:         v.Type(),
+		varName:   varName,
+		routeName: routeName,
+	}
+}
+
+func (this descriptor) addDispatchAction(funcs map[string]rack.Middleware, name string, method reflect.Method) {
+	name = strings.ToLower(name)
+	d := new(dispatchAction)
+	d.descriptor = this
+	d.name = name
+	d.action = rack.Func(func(vars map[string]interface{}, next func()) {
+		copy := reflect.New(this.t)
+		mapper := copy.Interface().(ModelMap)
+		mapper.SetRackVars(this, vars, next)
+		method.Func.Call([]reflect.Value{reflect.Indirect(copy)})
+		if !mapper.IsFinished() {
+			next()
+		}
+	})
+
+	funcs[name] = d
 }
 
 func (this dispatchAction) Run(vars map[string]interface{}, next func()) {
@@ -25,11 +58,11 @@ func (this dispatchAction) Run(vars map[string]interface{}, next func()) {
 	switch (httper.V)(vars).GetRequest().Method {
 	case "GET":
 		//if it was a get, the default action should be to render the template corresponding with the action
-		actions.Add(renderer.Renderer{this.m.RouteName() + "/" + this.name})
+		actions.Add(renderer.Renderer{this.routeName + "/" + this.name})
 	case "POST", "PUT":
 		//if it was a put or a post, we the default action should be to redirect to the affected item
 		actions.Add(rack.Func(func(vars map[string]interface{}, next func()) {
-			urler, isUrler := vars[this.m.VarName()].(Urler)
+			urler, isUrler := vars[this.varName].(Urler)
 			if !isUrler {
 				panic("Object doesn't have an URL to direct to")
 			}
@@ -57,29 +90,13 @@ func isControlFunc(m reflect.Method) bool {
 	return true
 }
 
-func GetRestMap(controller interface{}) (restfuncs map[string]rack.Middleware) {
+func (this descriptor) GetRestMap() (restfuncs map[string]rack.Middleware) {
 	restfuncs = make(map[string]rack.Middleware)
 
-	mapper, canMap := controller.(ModelMap)
-	if !canMap {
-		panic("Can't set rack variables!")
-	}
-
-	controllerType := reflect.TypeOf(controller)
 	for _, funcName := range []string{"Index", "Create", "New", "Show", "Edit", "Update", "Destroy"} {
-		//check each function to make sure it's there
-		method, methodExists := controllerType.MethodByName(funcName)
+		method, methodExists := this.t.MethodByName(funcName)
 		if methodExists && isControlFunc(method) {
-			caller := method.Func
-			value := []reflect.Value{reflect.ValueOf(controller)}
-			restfuncs[funcName] = &dispatchAction{
-				m:    mapper,
-				name: strings.ToLower(funcName),
-				action: rack.Func(func(vars map[string]interface{}, next func()) {
-					mapper.SetFinish(next)
-					caller.Call(value)
-				}),
-			}
+			this.addDispatchAction(restfuncs, funcName, method)
 		}
 	}
 
@@ -90,41 +107,24 @@ type mapList struct {
 	all, get, put, post, delete map[string]rack.Middleware
 }
 
-func GetGenericMapList(controller interface{}, functype string) (funcs mapList) {
-	funcs.all = GetGenericMap(controller, functype)
-	funcs.get = GetGenericMap(controller, "Get"+functype)
-	funcs.put = GetGenericMap(controller, "Put"+functype)
-	funcs.post = GetGenericMap(controller, "Post"+functype)
-	funcs.delete = GetGenericMap(controller, "Delete"+functype)
+func (this descriptor) GetGenericMapList(functype string) (funcs mapList) {
+	funcs.all = this.GetGenericMap(functype)
+	funcs.get = this.GetGenericMap("Get" + functype)
+	funcs.put = this.GetGenericMap("Put" + functype)
+	funcs.post = this.GetGenericMap("Post" + functype)
+	funcs.delete = this.GetGenericMap("Delete" + functype)
 	return
 }
 
-func GetGenericMap(controller interface{}, functype string) (funcs map[string]rack.Middleware) {
+func (this descriptor) GetGenericMap(functype string) (funcs map[string]rack.Middleware) {
 	funcs = make(map[string]rack.Middleware)
 	typelen := len(functype)
 
-	mapper, canMap := controller.(ModelMap)
-	if !canMap {
-		panic("Can't set rack variables!")
-	}
-
-	controllerType := reflect.TypeOf(controller)
-	for i, c := 0, controllerType.NumMethod(); i < c; i = i + 1 {
-		method := controllerType.Method(i)
-		if len(method.Name) >= typelen {
-			if method.Name[:typelen] == functype && isControlFunc(method) {
-				caller := method.Func
-				value := []reflect.Value{reflect.ValueOf(controller)}
-				name := method.Name[typelen:]
-				funcs[name] = &dispatchAction{
-					m:    mapper,
-					name: strings.ToLower(name),
-					action: rack.Func(func(vars map[string]interface{}, next func()) {
-						mapper.SetFinish(next)
-						caller.Call(value)
-					}),
-				}
-			}
+	for i, c := 0, this.t.NumMethod(); i < c; i = i + 1 {
+		method := this.t.Method(i)
+		//if the first part of the name is whatever we're looking for, and it's a contr
+		if len(method.Name) >= typelen && method.Name[:typelen] == functype && isControlFunc(method) {
+			this.addDispatchAction(funcs, method.Name[typelen:], method)
 		}
 	}
 	return

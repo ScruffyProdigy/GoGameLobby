@@ -13,28 +13,46 @@ import (
 // When Creating a Controller, you MUST put an anonymous controller.Heart into your controller (unless you really know what you're doing)
 // Not only do some of the functions require some a couple of the default methods
 type Heart struct {
-	m      ModelMap
-	Vars   map[string]interface{}
-	Finish func()
+	descriptor
+	isFinished bool
+	Vars       map[string]interface{}
+	finish     func()
+}
+
+type ModelMap interface {
+	SetRackVars(descriptor, map[string]interface{}, func())
+	IsFinished() bool
 }
 
 // this is how we hide the rack variables from the controllers who don't really care so much about these
 // they are later accessible in case you need them, but for the most part, you can just ignore these
-func (this *Heart) SetRackFuncVars(m ModelMap, vars map[string]interface{}) {
-	this.m = m
+func (this *Heart) SetRackVars(t descriptor, vars map[string]interface{}, next func()) {
+	this.descriptor = t
 	this.Vars = vars
-}
-
-// this sets the default response that the controller will give
-// by default, this will lead to rendering for any GET requests, and redirection for PUT and POST
-// DELETE is currently not implemented
-func (this *Heart) SetFinish(action func()) {
-	this.Finish = action
+	this.finish = next
+	this.isFinished = false
 }
 
 // if you are calling another Rack Middleware, you should call this function to get the variables it will need to run
-func (this Heart) GetRackFuncVars() (vars map[string]interface{}, next func()) {
-	return this.Vars, this.Finish
+func (this Heart) getRackFuncVars() (vars map[string]interface{}, next func()) {
+	return this.Vars, this.finish
+}
+
+func (this Heart) IsFinished() bool {
+	return this.isFinished
+}
+
+func (this Heart) finishingFunc() {
+	if this.isFinished {
+		panic("called a second finishing function")
+	}
+	this.isFinished = true
+}
+
+func (this Heart) Finish() {
+	this.finishingFunc()
+
+	this.finish()
 }
 
 // this should be the return value for most of your Create control functions
@@ -42,27 +60,35 @@ func (this Heart) GetRackFuncVars() (vars map[string]interface{}, next func()) {
 // since the default variable wasn't set because we didn't get into a specific resource
 // this will set the default variable to the resource you just created
 func (this Heart) RespondWith(object interface{}) {
-	this.Vars[this.m.VarName()] = object
+	this.finishingFunc()
+
+	this.Vars[this.varName] = object
 	this.Finish()
 }
 
 // if you have a piece of middleware that you want to respond with
 // return this instead of Finish along with the middleware you want to run
 func (this Heart) FinishWithMiddleware(m rack.Middleware) {
-	m.Run(this.GetRackFuncVars())
+	this.finishingFunc()
+
+	m.Run(this.getRackFuncVars())
 }
 
 // if things don't go according to plan, you can redirect somewhere else
 // return this instead of Finish along with where you want to redirect to
 func (this Heart) RedirectTo(url string) {
+	this.finishingFunc()
+
 	(redirecter.V)(this.Vars).Redirect(url)
 }
 
 // use this if you want to render something other than the default template
 // return this instead of Finish along with the template you want to render
 func (this Heart) Render(tmpl string) {
+	this.finishingFunc()
+
 	if !strings.Contains(tmpl, "/") {
-		tmpl = this.m.RouteName() + "/" + tmpl
+		tmpl = this.routeName + "/" + tmpl
 	}
 	(renderer.V)(this.Vars).Render(tmpl)
 }

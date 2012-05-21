@@ -12,19 +12,6 @@ type LodgeController struct {
 	controller.Heart
 }
 
-func (LodgeController) RouteName() string {
-	return "lodges"
-}
-
-func (LodgeController) VarName() string {
-	return "Lodge"
-}
-
-func (this LodgeController) Indexer(s string) (interface{}, bool) {
-	result := lodge.L.LodgeFromName(s)
-	return result, result != nil
-}
-
 func (this LodgeController) Index() {
 	var lodges []lodge.Lodge
 	err := lodge.L.AllLodges(&lodges)
@@ -103,6 +90,9 @@ func (this LodgeController) Create() {
 var Lodge *controller.ControllerShell
 
 func init() {
-	Lodge = controller.RegisterController(&LodgeController{})
+	Lodge = controller.RegisterController(new(LodgeController), "lodges", "Lodge", func(s string, vars map[string]interface{}) (interface{}, bool) {
+		result := lodge.L.LodgeFromName(s)
+		return result, result != nil
+	})
 	Lodge.AddTo(Root)
 }

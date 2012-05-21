@@ -38,16 +38,6 @@ type joinDisplay struct {
 	Descriptor string
 }
 
-func (this ProjectController) Indexer(query string) (interface{}, bool) {
-	l, isLodge := this.Get("Lodge").(*lodge.Lodge)
-	if !isLodge {
-		panic("Cannot find lodge")
-	}
-
-	result := game.G.GameFromLodgeAndName(l, query)
-	return result, result != nil
-}
-
 func (ProjectController) RouteName() string {
 	return "projects"
 }
@@ -233,5 +223,13 @@ func (this ProjectController) join(mode, group, join string) {
 }
 
 func init() {
-	controller.RegisterController(&ProjectController{}).AddAsSubresource(Lodge)
+	controller.RegisterController(&ProjectController{}, "projects", "Game", func(query string, vars map[string]interface{}) (interface{}, bool) {
+		l, isLodge := vars["Lodge"].(*lodge.Lodge)
+		if !isLodge {
+			panic("Cannot find lodge")
+		}
+
+		result := game.G.GameFromLodgeAndName(l, query)
+		return result, result != nil
+	}).AddAsSubresource(Lodge)
 }
