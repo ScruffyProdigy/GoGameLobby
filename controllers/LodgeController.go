@@ -21,8 +21,6 @@ func (this LodgeController) Index() {
 
 	this.Set("Lodges", lodges)
 	this.Set("Title", "Mason Lodges")
-
-	this.Finish()
 }
 
 func (this LodgeController) Show() {
@@ -35,16 +33,12 @@ func (this LodgeController) Show() {
 	if len(inProgress) > 0 {
 		this.Set("InProgress", inProgress)
 	}
-	this.Set("Title", l.Name)
 
-	this.Finish()
+	this.Set("Title", l.Name)
 }
 
 func (this LodgeController) New() {
-
 	this.Set("Title", "Create a Mason Lodge")
-
-	this.Finish()
 }
 
 func (this LodgeController) Create() {

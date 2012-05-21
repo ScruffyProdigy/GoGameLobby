@@ -89,8 +89,6 @@ func (this ProjectController) Show() {
 		this.Set("GameModes", modes)
 		log.Println(modes)
 	}
-	this.Finish()
-
 }
 
 func (this ProjectController) Update() {

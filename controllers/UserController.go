@@ -21,19 +21,17 @@ func (this UserController) Index() {
 
 	this.Set("Users", users)
 	this.Set("Title", "Users")
-
-	this.Finish()
 }
 
 func (this UserController) Show() {
 	u := this.Get("User").(*user.User)
 
 	this.Set("Title", u.ClashTag)
-
-	this.Finish()
 }
 
 func (this UserController) New() {
+
+	print("\n***********\nNew!\n*****************\n")
 
 	authorization, isString := this.Session().Clear("authorization").(string)
 	if !isString {
@@ -48,8 +46,6 @@ func (this UserController) New() {
 	this.Set("auth_id", this.Session().Clear("auth_id"))
 
 	this.Set("Title", "New User")
-
-	this.Finish()
 }
 
 func (this UserController) Create() {

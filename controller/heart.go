@@ -10,13 +10,16 @@ import (
 	"strings"
 )
 
+const (
+	finishedIndex = "controllerheartisfinished"
+)
+
 // When Creating a Controller, you MUST put an anonymous controller.Heart into your controller (unless you really know what you're doing)
 // Not only do some of the functions require some a couple of the default methods
 type Heart struct {
 	descriptor
-	isFinished bool
-	Vars       map[string]interface{}
-	finish     func()
+	Vars   map[string]interface{}
+	finish func()
 }
 
 type ModelMap interface {
@@ -30,7 +33,6 @@ func (this *Heart) SetRackVars(t descriptor, vars map[string]interface{}, next f
 	this.descriptor = t
 	this.Vars = vars
 	this.finish = next
-	this.isFinished = false
 }
 
 // if you are calling another Rack Middleware, you should call this function to get the variables it will need to run
@@ -39,14 +41,15 @@ func (this Heart) getRackFuncVars() (vars map[string]interface{}, next func()) {
 }
 
 func (this Heart) IsFinished() bool {
-	return this.isFinished
+	isFinished, isValid := this.Vars[finishedIndex].(bool)
+	return isValid && isFinished
 }
 
 func (this Heart) finishingFunc() {
-	if this.isFinished {
+	if this.IsFinished() {
 		panic("called a second finishing function")
 	}
-	this.isFinished = true
+	this.Vars[finishedIndex] = true
 }
 
 func (this Heart) Finish() {
@@ -107,6 +110,8 @@ func (this Heart) GetFormValue(value string) string {
 }
 
 func (this Heart) NotAuthorized() {
+	this.finishingFunc()
+
 	(httper.V)(this.Vars).Status(http.StatusUnauthorized)
 }
 

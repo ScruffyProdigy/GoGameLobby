@@ -109,8 +109,8 @@ func RegisterController(m ModelMap, routeName, varName string, indexer func(s st
 	resource.Member.Routing = memberSignaler{varName: varName, indexer: indexer}
 	resource.Member.Action = splitter{get: restfuncs["show"], put: restfuncs["update"], delete: restfuncs["destroy"]}
 
-	if restfuncs["Edit"] != nil {
-		memberfuncs.get["Edit"] = restfuncs["edit"]
+	if restfuncs["edit"] != nil {
+		memberfuncs.get["edit"] = restfuncs["edit"]
 	}
 	AddMapListRoutes(resource.Member, memberfuncs)
 
@@ -118,8 +118,8 @@ func RegisterController(m ModelMap, routeName, varName string, indexer func(s st
 	resource.Collection.Routing = collectionSignaler{name: routeName}
 	resource.Collection.Action = splitter{get: restfuncs["index"], post: restfuncs["create"]}
 
-	if restfuncs["New"] != nil {
-		collectionfuncs.get["New"] = restfuncs["new"]
+	if restfuncs["new"] != nil {
+		collectionfuncs.get["new"] = restfuncs["new"]
 	}
 	AddMapListRoutes(resource.Collection, collectionfuncs)
 
