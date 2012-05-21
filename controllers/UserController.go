@@ -30,9 +30,6 @@ func (this UserController) Show() {
 }
 
 func (this UserController) New() {
-
-	print("\n***********\nNew!\n*****************\n")
-
 	authorization, isString := this.Session().Clear("authorization").(string)
 	if !isString {
 		this.NotAuthorized()
@@ -67,7 +64,6 @@ func (this UserController) Create() {
 		if rec != nil {
 			this.AddFlash("I'm sorry, but there was an error with your form")
 			this.FinishWithMiddleware(login.NewUserForm(authData))
-			return
 		}
 	}()
 
