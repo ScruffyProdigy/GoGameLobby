@@ -67,6 +67,7 @@ func (this UserController) Create() {
 		if rec != nil {
 			this.AddFlash("I'm sorry, but there was an error with your form")
 			this.FinishWithMiddleware(login.NewUserForm(authData))
+			return
 		}
 	}()
 

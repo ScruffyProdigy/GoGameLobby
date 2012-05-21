@@ -25,6 +25,8 @@ type Heart struct {
 type ModelMap interface {
 	SetRackVars(descriptor, map[string]interface{}, func())
 	IsFinished() bool
+	SetFinished()
+	SetUnfinished()
 }
 
 // this is how we hide the rack variables from the controllers who don't really care so much about these
@@ -45,17 +47,26 @@ func (this Heart) IsFinished() bool {
 	return isValid && isFinished
 }
 
-func (this Heart) finishingFunc() {
-	if this.IsFinished() {
-		panic("called a second finishing function")
-	}
+func (this Heart) SetFinished() {
 	this.Vars[finishedIndex] = true
 }
 
-func (this Heart) Finish() {
-	this.finishingFunc()
+func (this Heart) SetUnfinished() {
+	this.Vars[finishedIndex] = true
+}
 
-	this.finish()
+func (this Heart) finishingFunc(action func()) {
+	if this.IsFinished() {
+		panic("called a second finishing function")
+	}
+	action()
+	this.SetFinished()
+}
+
+func (this Heart) Finish() {
+	this.finishingFunc(func() {
+		this.finish()
+	})
 }
 
 // this should be the return value for most of your Create control functions
@@ -63,37 +74,37 @@ func (this Heart) Finish() {
 // since the default variable wasn't set because we didn't get into a specific resource
 // this will set the default variable to the resource you just created
 func (this Heart) RespondWith(object interface{}) {
-	this.finishingFunc()
-
-	this.Vars[this.varName] = object
-	this.Finish()
+	this.finishingFunc(func() {
+		this.Vars[this.varName] = object
+		this.Finish()
+	})
 }
 
 // if you have a piece of middleware that you want to respond with
 // return this instead of Finish along with the middleware you want to run
 func (this Heart) FinishWithMiddleware(m rack.Middleware) {
-	this.finishingFunc()
-
-	m.Run(this.getRackFuncVars())
+	this.finishingFunc(func() {
+		m.Run(this.getRackFuncVars())
+	})
 }
 
 // if things don't go according to plan, you can redirect somewhere else
 // return this instead of Finish along with where you want to redirect to
 func (this Heart) RedirectTo(url string) {
-	this.finishingFunc()
-
-	(redirecter.V)(this.Vars).Redirect(url)
+	this.finishingFunc(func() {
+		(redirecter.V)(this.Vars).Redirect(url)
+	})
 }
 
 // use this if you want to render something other than the default template
 // return this instead of Finish along with the template you want to render
 func (this Heart) Render(tmpl string) {
-	this.finishingFunc()
-
-	if !strings.Contains(tmpl, "/") {
-		tmpl = this.routeName + "/" + tmpl
-	}
-	(renderer.V)(this.Vars).Render(tmpl)
+	this.finishingFunc(func() {
+		if !strings.Contains(tmpl, "/") {
+			tmpl = this.routeName + "/" + tmpl
+		}
+		(renderer.V)(this.Vars).Render(tmpl)
+	})
 }
 
 func (this Heart) AddFlash(flash string) {
@@ -110,7 +121,7 @@ func (this Heart) GetFormValue(value string) string {
 }
 
 func (this Heart) NotAuthorized() {
-	this.finishingFunc()
+	this.finishingFunc(func() {})
 
 	(httper.V)(this.Vars).Status(http.StatusUnauthorized)
 }
