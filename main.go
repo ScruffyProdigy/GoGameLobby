@@ -3,11 +3,12 @@ package main
 import (
 	"./clashgetter"
 	"./controllers"
-	"./defaulter"
 	"./loadconfiguration"
 	"./login"
 	"./models"
 	"./requestlogger"
+	"./staticer"
+	"./varser"
 	"./websocketcontrol"
 	"fmt"
 	"github.com/HairyMezican/Middleware/encapsulator"
@@ -89,7 +90,8 @@ func main() {
 	rackup := rack.New()
 	rackup.Add(logger.Set(os.Stdout, "Log Test - ", log.LstdFlags))
 	rackup.Add(requestlogger.M)
-	rackup.Add(defaulter.V{"Layout": "base"})
+	rackup.Add(staticer.New("/static/", "static"))
+	rackup.Add(varser.Default{"Layout": "base"})
 	rackup.Add(encapsulator.AddLayout)
 	rackup.Add(statuser.SetErrorLayout)
 	if mode != debug {
