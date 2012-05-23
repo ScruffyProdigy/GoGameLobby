@@ -3,6 +3,7 @@ package pubsuber
 import (
 	"../redis"
 	"../trigger"
+	"encoding/json"
 	"io"
 )
 
@@ -45,7 +46,7 @@ func messageReceiver(channel string, action func(string)) (io.Closer, error) {
 }
 
 type Target interface {
-	SendMessage(message string)
+	SendMessage(message interface{})
 	ReceiveMessages(action func(message string)) io.Closer
 	IsActive() bool
 }
@@ -61,11 +62,27 @@ type userTarget struct {
 	user string
 }
 
-func (this userTarget) SendMessage(message string) {
+func makeString(message interface{}) string {
+
+	stringMessage, ok := message.(string)
+	if ok {
+		return stringMessage
+	}
+
+	byteMessage, err := json.Marshal(message)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(byteMessage)
+}
+
+func (this userTarget) SendMessage(message interface{}) {
+	stringMessage := makeString(message)
 	if this.IsActive() {
-		redis.Client.Publish(userMessageChannel(this.user), message)
+		redis.Client.Publish(userMessageChannel(this.user), stringMessage)
 	} else {
-		redis.Client.Lpush(userMessageChannel(this.user), message)
+		redis.Client.Lpush(userMessageChannel(this.user), stringMessage)
 	}
 }
 
@@ -77,7 +94,7 @@ func (this userTarget) ReceiveMessages(action func(message string)) io.Closer {
 	var i int64
 	for i = 0; i < oldmessagecount; i++ {
 		message, _ := redis.Client.Rpop(userMessageChannel(this.user))
-		redis.Client.Publish(userMessageChannel(this.user), message.String())
+		action(message.String())
 	}
 
 	return trigger.OnClose(func() {
@@ -99,8 +116,9 @@ type urlTarget struct {
 	url string
 }
 
-func (this urlTarget) SendMessage(message string) {
-	redis.Client.Publish(urlMessageChannel(this.url), message)
+func (this urlTarget) SendMessage(message interface{}) {
+	stringMessage := makeString(message)
+	redis.Client.Publish(urlMessageChannel(this.url), stringMessage)
 }
 
 func (this urlTarget) ReceiveMessages(action func(message string)) io.Closer {

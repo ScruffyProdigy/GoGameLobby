@@ -22,7 +22,6 @@ import (
 	"github.com/HairyMezican/Middleware/parser"
 	"github.com/HairyMezican/Middleware/sessioner"
 	"github.com/HairyMezican/Middleware/statuser"
-	"github.com/HairyMezican/Middleware/websocketer"
 	"github.com/HairyMezican/TheRack/httper"
 	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/TheTemplater/templater"
@@ -82,9 +81,7 @@ func main() {
 	//load the templates for the views
 	templater.LoadFromFiles("./views", log.New(os.Stdout, "template - ", log.LstdFlags))
 
-	ws := websocketer.New()
-	ws.OnOpen(websocketcontrol.OpenUp)
-	ws.OnClose(websocketcontrol.CloseDown)
+	ws := websocketcontrol.New()
 
 	//set up the rack
 	rackup := rack.New()

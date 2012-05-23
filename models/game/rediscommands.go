@@ -4,11 +4,23 @@ import (
 	"../../gamedata"
 	"../../pubsuber"
 	"../../redis"
+	"../../websocketcontrol"
+	"../user"
+	"fmt"
 	neturl "net/url"
 	"strings"
 )
 
 var QueueMutex *redis.ReadWriteMutex
+
+type Start struct {
+	Game string `json:"game"`
+	Mode string `json:"mode"`
+}
+
+type StartLoc struct {
+	Loc string `json:"loc"`
+}
 
 func init() {
 	var err error
@@ -16,6 +28,35 @@ func init() {
 	if err != nil {
 		panic("Couldn't set up Queue Mutex")
 	}
+
+	websocketcontrol.AddLogoutChore(func(username string) {
+		RemoveFromAllQueues(username)
+	})
+
+	websocketcontrol.MessageAction("start", func(u *user.User, data interface{}) interface{} {
+		startinfo, ok := data.(map[string]interface{})
+		if !ok {
+			fmt.Println("Couldn't Get Start Info")
+			return nil
+		}
+
+		game, ok := startinfo["game"].(string)
+		if !ok {
+			fmt.Println("Couldn't Get Game")
+			return nil
+		}
+
+		mode, ok := startinfo["mode"].(string)
+		if !ok {
+			fmt.Println("Couldn't Get Mode")
+			return nil
+		}
+
+		url := getActiveGameUrl(u.ClashTag, game, mode)
+		result := map[string]StartLoc{"startloc": StartLoc{Loc: url}}
+		fmt.Println(result)
+		return result
+	})
 }
 
 func usersIndex(user string) string {
@@ -30,7 +71,11 @@ func joinIndex(game, mode, user string) string {
 	return "queues" + sEp + game + sEp + mode + sEp + "players" + sEp + user
 }
 
-func sendStartMessage(user string, url string, options map[string]string) {
+func activeGameIndex(user, game, mode string) string {
+	return "activegames" + sEp + user + sEp + game + sEp + mode
+}
+
+func sendStartMessage(user string, game, mode, url string, options map[string]string) {
 	urlvals := make(neturl.Values)
 	for k, v := range options {
 		urlvals.Add(k, v)
@@ -41,12 +86,38 @@ func sendStartMessage(user string, url string, options map[string]string) {
 		url += "?" + query
 	}
 
-	pubsuber.User(user).SendMessage("Start:" + url)
+	addActiveGame(user, game, mode, url)
+	pubsuber.User(user).SendMessage(map[string]Start{"start": Start{Game: game, Mode: mode}})
 }
 
-func sendStartMessages(startInfo gamedata.StartInfo) {
+func sendStartMessages(startInfo gamedata.StartInfo, game, mode string) {
 	for p, vals := range startInfo.Players {
-		go sendStartMessage(p, startInfo.Url, vals.UrlValues)
+		go sendStartMessage(p, game, mode, startInfo.Url, vals.UrlValues)
+	}
+}
+
+func addActiveGame(user, game, mode, url string) {
+	original, err := redis.Client.Getset(activeGameIndex(user, game, mode), url)
+	if err != nil {
+		panic(err)
+	}
+	if original.String() != "" {
+		//		panic("overwriting active game")
+	}
+}
+
+func getActiveGameUrl(user, game, mode string) string {
+	url, err := redis.Client.Get(activeGameIndex(user, game, mode))
+	if err != nil {
+		panic(err)
+	}
+	return url.String()
+}
+
+func removeActiveGame(user, game, mode string) {
+	_, err := redis.Client.Del(activeGameIndex(user, game, mode))
+	if err != nil {
+		panic(err)
 	}
 }
 

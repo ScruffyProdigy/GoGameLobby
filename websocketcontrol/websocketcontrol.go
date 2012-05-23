@@ -1,13 +1,17 @@
 package websocketcontrol
 
 import (
+	"../../Middleware/websocketer"
 	"../login"
-	"../models/game"
+	"../models/user"
 	"../pubsuber"
 	"../redis"
 	"../trigger"
-	"github.com/HairyMezican/Middleware/websocketer"
+	"encoding/json"
+	"fmt"
+	"github.com/HairyMezican/Middleware/logger"
 	"github.com/HairyMezican/TheRack/httper"
+	"github.com/HairyMezican/TheRack/rack"
 	"io"
 	"time"
 )
@@ -20,8 +24,16 @@ func cancelLogoutIndex(user string) string {
 	return "Cancel Logout " + user
 }
 
-func logout(user string) {
-	game.RemoveFromAllQueues(user)
+var logoutChores = make([]func(string), 0)
+
+func AddLogoutChore(chore func(string)) {
+	logoutChores = append(logoutChores, chore)
+}
+
+func logout(username string) {
+	for _, chore := range logoutChores {
+		chore(username)
+	}
 }
 
 func startLogoutProcess(user string) {
@@ -46,26 +58,52 @@ func startLogoutProcess(user string) {
 	}
 }
 
-type Opener struct{}
+type WebsocketMessage struct {
+	Type string                 `json:"type"`
+	Data map[string]interface{} `json:"data"`
+}
 
-func (Opener) Run(vars map[string]interface{}, next func()) {
+func New() rack.Middleware {
+	ws := websocketer.New()
+	ws.OnOpen(wsOpener)
+	ws.OnClose(wsCloser)
+	ws.OnMessage(wsMessager)
+	ws.UseJSON()
+	ws.OnStorage(func() interface{} {
+		fmt.Println("Making New Storage")
+		var m WebsocketMessage
+		return &m
+	})
+	fmt.Println("I Did OnStorage")
+
+	return ws
+}
+
+var wsOpener rack.Func = func(vars map[string]interface{}, next func()) {
 	currentUser, loggedIn := (login.V)(vars).CurrentUser()
 	r := (httper.V)(vars).GetRequest()
 
 	t := trigger.New()
 
-	sendBasicMessage := func(message string) {
-		(websocketer.V)(vars).SendBasicMessage(message)
+	sendMessage := func(message string) {
+		var jsonMessage interface{}
+		err := json.Unmarshal([]byte(message), &jsonMessage)
+		if err != nil {
+			(logger.V)(vars).Get().Println(message, "is not valid JSON")
+			return
+		}
+		(logger.V)(vars).Get().Println(message, "gets translated into", jsonMessage)
+		(websocketer.V)(vars).SendJSONMessage(jsonMessage)
 	}
 
 	if loggedIn {
 		redis.Client.Publish(cancelLogoutIndex(currentUser.ClashTag), "Doesn't matter what goes here")
-		closer := pubsuber.User(currentUser.ClashTag).ReceiveMessages(sendBasicMessage)
+		closer := pubsuber.User(currentUser.ClashTag).ReceiveMessages(sendMessage)
 		t.OnClose(func() {
 			closer.Close()
 		})
 	}
-	closer := pubsuber.Url(r.URL.String()).ReceiveMessages(sendBasicMessage)
+	closer := pubsuber.Url(r.URL.String()).ReceiveMessages(sendMessage)
 	t.OnClose(func() {
 		closer.Close()
 	})
@@ -73,9 +111,7 @@ func (Opener) Run(vars map[string]interface{}, next func()) {
 	vars[closerIndex] = t
 }
 
-type Closer struct{}
-
-func (Closer) Run(vars map[string]interface{}, next func()) {
+var wsCloser rack.Func = func(vars map[string]interface{}, next func()) {
 	closer := vars[closerIndex].(io.Closer)
 	closer.Close()
 
@@ -87,5 +123,32 @@ func (Closer) Run(vars map[string]interface{}, next func()) {
 	}
 }
 
-var OpenUp Opener
-var CloseDown Closer
+var wsMessager rack.Func = func(vars map[string]interface{}, next func()) {
+
+	message, ok := (websocketer.V)(vars).GetMessage().(*WebsocketMessage)
+	if !ok {
+		(logger.V)(vars).Get().Println("Unknown Message")
+		return
+	}
+
+	actionType := message.Type
+	actionData := message.Data
+
+	action, ok := messageTypes[actionType]
+	if !ok {
+		(logger.V)(vars).Get().Println("No action for messages of type", actionType)
+		return
+	}
+
+	currentUser, _ := (login.V)(vars).CurrentUser()
+
+	result := action(currentUser, actionData)
+
+	(websocketer.V)(vars).SetResponse(result)
+}
+
+var messageTypes = make(map[string]func(*user.User, interface{}) interface{})
+
+func MessageAction(messagetype string, action func(*user.User, interface{}) interface{}) {
+	messageTypes[messagetype] = action
+}

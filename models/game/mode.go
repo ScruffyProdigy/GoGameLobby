@@ -47,7 +47,7 @@ func (m Mode) start() (restart bool) {
 
 	if start {
 		// we've loaded the players in the queue, time to start it
-		sendStartMessages(startInfo)
+		sendStartMessages(startInfo, m.game, m.mode)
 		return false
 	}
 
