@@ -39,18 +39,14 @@ func Semaphore(key string, count int) (mutex.Mutex, error) {
 
 func (this *redismutex) Try(action func()) bool {
 	old, err := this.client.Lpop(this.key)
-	if err != nil {
-		panic(err)
-	}
+	checkForError(err)
 	if old.Int64() == 0 {
 		return false
 	}
 
 	defer func() {
 		_, err := this.client.Rpush(this.key, old.Int64())
-		if err != nil {
-			panic(err)
-		}
+		checkForError(err)
 	}()
 
 	action()
@@ -60,15 +56,11 @@ func (this *redismutex) Try(action func()) bool {
 
 func (this *redismutex) Force(action func()) {
 	old, err := this.client.Blpop([]string{this.key}, 0)
-	if err != nil {
-		panic(err)
-	}
+	checkForError(err)
 
 	defer func() {
 		_, err := this.client.Rpush(this.key, old)
-		if err != nil {
-			panic(err)
-		}
+		checkForError(err)
 	}()
 
 	action()

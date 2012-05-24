@@ -16,6 +16,22 @@
 				{{end}}		
 			</ul>
 		</nav>
+		{{if .Clashes}}
+			<section class="clashes">
+				<header>
+					<h1>Clashes</h1>
+					<p>You are currently participating in the following clashes:</p>
+				</header>
+				<ul>
+				{{range .Clashes}}
+					<a href="{{.Url}}" class="clash-{{.Game.Name}}{{.Mode}}">
+						<li>
+							{{.Game.Name}} - {{.Mode}}
+						</li>
+					</a>
+				{{end}}
+			</section>
+		{{end}}
 		{{if .Queues}}
 			<section class="queues">
 				<header>
@@ -24,11 +40,9 @@
 				</header>
 				<ul>
 				{{range .Queues}}
-					<a href="{{.Game.Url}}">
+					<a href="{{.Game.Url}}" class="queue-{{.Game.Name}}{{.Mode}}">
 						<li>
-							<section class="queue-{{.Game.Name}}{{.Mode}}">
-								{{.Game.Name}} - {{.Mode}}
-							</section>
+							{{.Game.Name}} - {{.Mode}}
 						</li>
 					</a>
 				{{end}}

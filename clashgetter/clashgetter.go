@@ -13,6 +13,9 @@ func (Middleware) Run(vars map[string]interface{}, next func()) {
 	if loggedIn {
 		queues := game.GetUserQueues(currentUser.ClashTag)
 		vars["Queues"] = queues
+
+		clashes := game.GetUserClashes(currentUser.ClashTag)
+		vars["Clashes"] = clashes
 	}
 	next()
 }

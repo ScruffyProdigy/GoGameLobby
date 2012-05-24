@@ -1,13 +1,10 @@
 package game
 
 import (
-	"../../gamedata"
-	"../../pubsuber"
 	"../../redis"
 	"../../websocketcontrol"
 	"../user"
 	"fmt"
-	neturl "net/url"
 	"strings"
 )
 
@@ -52,73 +49,58 @@ func init() {
 			return nil
 		}
 
-		url := getActiveGameUrl(u.ClashTag, game, mode)
+		url := clashUrl(u.ClashTag, game+sEp+mode).Get()
 		result := map[string]StartLoc{"startloc": StartLoc{Loc: url}}
 		fmt.Println(result)
 		return result
 	})
 }
 
-func usersIndex(user string) string {
-	return "users" + sEp + user + sEp + "queues"
+func userQueues(user string) redis.Set {
+	return redis.Set("users" + sEp + user + sEp + "queues")
 }
 
-func queueIndex(game, mode, group string) string {
-	return "queues" + sEp + game + sEp + mode + sEp + "groups" + sEp + group
+func userClashes(user string) redis.Set {
+	return redis.Set("users" + sEp + user + sEp + "clashes")
 }
 
-func joinIndex(game, mode, user string) string {
-	return "queues" + sEp + game + sEp + mode + sEp + "players" + sEp + user
+func queues(gamemode, group string) redis.List {
+	return redis.List("queues" + sEp + gamemode + sEp + "groups" + sEp + group)
 }
 
-func activeGameIndex(user, game, mode string) string {
-	return "activegames" + sEp + user + sEp + game + sEp + mode
+func joinData(user, gamemode string) redis.String {
+	return redis.String("queues" + sEp + gamemode + sEp + "players" + sEp + user)
 }
 
-func sendStartMessage(user string, game, mode, url string, options map[string]string) {
-	urlvals := make(neturl.Values)
-	for k, v := range options {
-		urlvals.Add(k, v)
+func clashUrl(user, gamemode string) redis.String {
+	return redis.String("clashes" + sEp + user + sEp + gamemode)
+}
+
+type UserClash struct {
+	Game *Game
+	Mode string
+	Url  string
+}
+
+func GetUserClashes(user string) (result []UserClash) {
+	clashes := userClashes(user).Members()
+
+	result = make([]UserClash, 0, len(clashes))
+	for _, clash := range clashes {
+		clashInfo := strings.SplitN(clash, sEp, 2)
+
+		game := G.GameFromName(clashInfo[0])
+		mode := clashInfo[1]
+		url := clashUrl(user, clash).Get()
+
+		clashStruct := UserClash{
+			Game: game,
+			Mode: mode,
+			Url:  url,
+		}
+		result = append(result, clashStruct)
 	}
-
-	query := urlvals.Encode()
-	if query != "" {
-		url += "?" + query
-	}
-
-	addActiveGame(user, game, mode, url)
-	pubsuber.User(user).SendMessage(map[string]Start{"start": Start{Game: game, Mode: mode}})
-}
-
-func sendStartMessages(startInfo gamedata.StartInfo, game, mode string) {
-	for p, vals := range startInfo.Players {
-		go sendStartMessage(p, game, mode, startInfo.Url, vals.UrlValues)
-	}
-}
-
-func addActiveGame(user, game, mode, url string) {
-	original, err := redis.Client.Getset(activeGameIndex(user, game, mode), url)
-	if err != nil {
-		panic(err)
-	}
-	if original.String() != "" {
-		//		panic("overwriting active game")
-	}
-}
-
-func getActiveGameUrl(user, game, mode string) string {
-	url, err := redis.Client.Get(activeGameIndex(user, game, mode))
-	if err != nil {
-		panic(err)
-	}
-	return url.String()
-}
-
-func removeActiveGame(user, game, mode string) {
-	_, err := redis.Client.Del(activeGameIndex(user, game, mode))
-	if err != nil {
-		panic(err)
-	}
+	return
 }
 
 type UserQueue struct {
@@ -127,13 +109,7 @@ type UserQueue struct {
 }
 
 func GetUserQueues(user string) (result []UserQueue) {
-	index := usersIndex(user)
-	reply, err := redis.Client.Smembers(index)
-	if err != nil {
-		panic(err)
-	}
-
-	queues := reply.StringArray()
+	queues := userQueues(user).Members()
 
 	result = make([]UserQueue, 0, len(queues))
 	for _, queue := range queues {
@@ -145,80 +121,4 @@ func GetUserQueues(user string) (result []UserQueue) {
 		result = append(result, queueStruct)
 	}
 	return
-}
-
-func addToMode(user, game, mode string) bool {
-	isNew, err := redis.Client.Sadd(usersIndex(user), game+sEp+mode)
-	if err != nil {
-		panic(err)
-	}
-	return isNew
-}
-
-func removeFromMode(user, game, mode string) bool {
-	removed, err := redis.Client.Srem(usersIndex(user), game+sEp+mode)
-	if err != nil {
-		panic(err)
-	}
-	return removed
-}
-
-func removeFromQueue(user, game, mode, group string) bool {
-	numRemoved, err := redis.Client.Lrem(queueIndex(game, mode, group), 0, user)
-	if err != nil {
-		panic(err)
-	}
-	return numRemoved > 0
-}
-
-func addToQueue(user, game, mode, group string) int64 {
-	len, err := redis.Client.Lpush(queueIndex(game, mode, group), user)
-	if err != nil {
-		panic(err)
-	}
-	return len
-}
-
-func jumpTheQueue(user, game, mode, group string) int64 {
-	len, err := redis.Client.Rpush(queueIndex(game, mode, group), user)
-	if err != nil {
-		panic(err)
-	}
-	return len
-}
-
-func pullFromQueue(game, mode, group string) string {
-	user, err := redis.Client.Rpop(queueIndex(game, mode, group))
-	if err != nil {
-		panic(err)
-	}
-	return user.String()
-}
-
-func queueLength(game, mode, group string) int64 {
-	len, err := redis.Client.Llen(queueIndex(game, mode, group))
-	if err != nil {
-		panic(err)
-	}
-	return len
-}
-
-func setJoinOptions(user, game, mode, join string) {
-	err := redis.Client.Set(joinIndex(game, mode, user), join)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func takeJoinOptions(user, game, mode string) string {
-	join, err := redis.Client.Get(joinIndex(game, mode, user))
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = redis.Client.Del(joinIndex(game, mode, user))
-	if err != nil {
-		panic(err)
-	}
-	return join.String()
 }

@@ -2,6 +2,7 @@ package redis
 
 import (
 	"../loadconfiguration"
+	"errors"
 	"github.com/simonz05/godis/redis"
 )
 
@@ -36,4 +37,20 @@ func init() {
 	if err != nil || test.String() != "test" {
 		panic("Please run Redis before executing this")
 	}
+}
+
+var TimeoutError = errors.New("Timeout Error")
+
+func checkForError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func isTimeout(err *error) bool {
+	if (*err).Error() == "timeout expired" {
+		*err = TimeoutError
+		return true
+	}
+	return false
 }
