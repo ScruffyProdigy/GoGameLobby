@@ -16,12 +16,6 @@ func (this Set) IsValid() bool {
 	return thistype == "set"
 }
 
-func (this Set) Delete() bool {
-	deleted, err := this.client.Del(this.key)
-	checkForError(err)
-	return deleted > 0
-}
-
 func (this Set) Add(item string) bool {
 	isNew, err := this.client.Sadd(this.key, item)
 	checkForError(err)

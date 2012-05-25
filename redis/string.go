@@ -33,12 +33,6 @@ func (this String) Get() string {
 	return val.String()
 }
 
-func (this String) Delete() bool {
-	deleted, err := this.client.Del(this.key)
-	checkForError(err)
-	return deleted > 0
-}
-
 func (this String) Clear() (string, bool) {
 	val := this.Get()
 	return val, this.Delete()

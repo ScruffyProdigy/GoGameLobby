@@ -33,12 +33,6 @@ func (this Counter) GetSet(val int64) int64 {
 	return newVal.Int64()
 }
 
-func (this Counter) Delete() bool {
-	deleted, err := this.client.Del(this.key)
-	checkForError(err)
-	return deleted > 0
-}
-
 func (this Counter) Clear() (int64, bool) {
 	val := this.Get()
 	return val, this.Delete()

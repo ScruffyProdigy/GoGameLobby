@@ -16,12 +16,6 @@ func (this List) IsValid() bool {
 	return thistype == "list"
 }
 
-func (this List) Delete() bool {
-	deleted, err := this.client.Del(this.key)
-	checkForError(err)
-	return deleted > 0
-}
-
 func (this List) Length() int64 {
 	length, err := this.client.Llen(this.key)
 	checkForError(err)
