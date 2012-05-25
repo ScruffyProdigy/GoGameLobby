@@ -1,52 +1,44 @@
 package redis
 
 import (
-	"../mutex"
-	"github.com/simonz05/godis/redis"
+	"strconv"
 )
 
-type redismutex struct {
-	client *redis.Client
-	key    string
+type Mutex interface {
+	Try(action func()) bool
+	Force(action func())
 }
 
-func Mutex(key string) (mutex.Mutex, error) {
-	return Semaphore(key, 1)
+type redisMutex struct {
+	init      String
+	processes List
 }
 
-func Semaphore(key string, count int) (mutex.Mutex, error) {
-	oldvalue, err := Client.Getset(key+":Init", "initialized")
-	if err != nil {
-		return nil, err
-	}
+func newMutex(client Redis, key string, count int) Mutex {
+	m := new(redisMutex)
+	m.init = client.String(key + ":Initialized")
+	m.processes = client.List(key)
+	m.initialize(count)
 
-	if oldvalue.String() != "initialized" {
+	return m
+}
+
+func (this *redisMutex) initialize(count int) {
+	if this.init.Replace("initialized") != "initialized" {
 		for i := 0; i < count; i++ {
-			_, err := Client.Rpush(key, i+1)
-			if err != nil {
-				Client.Del(key + ":Init")
-				Client.Del(key)
-				return nil, err
-			}
+			this.processes.RightPush(strconv.Itoa(i + 1))
 		}
 	}
-
-	m := new(redismutex)
-	m.client = Client
-	m.key = key
-	return m, nil
 }
 
-func (this *redismutex) Try(action func()) bool {
-	old, err := this.client.Lpop(this.key)
-	checkForError(err)
-	if old.Int64() == 0 {
+func (this *redisMutex) Try(action func()) bool {
+	val, available := this.processes.LeftPop()
+	if !available {
 		return false
 	}
 
 	defer func() {
-		_, err := this.client.Rpush(this.key, old.Int64())
-		checkForError(err)
+		this.processes.RightPush(val)
 	}()
 
 	action()
@@ -54,13 +46,11 @@ func (this *redismutex) Try(action func()) bool {
 	return true
 }
 
-func (this *redismutex) Force(action func()) {
-	old, err := this.client.Blpop([]string{this.key}, 0)
-	checkForError(err)
+func (this *redisMutex) Force(action func()) {
+	val := this.processes.BlockUntilLeftPop()
 
 	defer func() {
-		_, err := this.client.Rpush(this.key, old)
-		checkForError(err)
+		this.processes.RightPush(val)
 	}()
 
 	action()

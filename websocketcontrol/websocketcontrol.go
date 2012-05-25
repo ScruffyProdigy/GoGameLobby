@@ -20,8 +20,8 @@ const (
 	closerIndex = "websocket:closer"
 )
 
-func cancelLogoutIndex(user string) string {
-	return "Cancel Logout " + user
+func loginChannel(user string) redis.Channel {
+	return redis.Client.Channel("Cancel Logout " + user)
 }
 
 var logoutChores = make([]func(string), 0)
@@ -38,24 +38,15 @@ func logout(username string) {
 
 func startLogoutProcess(user string) {
 	//wait 5 seconds, and if we haven't gotten a cancel message, log the user out
-	canceler, err := redis.Subscribe(cancelLogoutIndex(user))
-	if err != nil {
-		//we weren't able to check to see if the user could log out, so we will automatically log him out now
-		logout(user)
-		return
-	}
-
-	//cleanup at the end
-	defer canceler.Close()
-	defer canceler.Unsubscribe(cancelLogoutIndex(user))
-
-	//if we don't get a cancel message before we get the 5second callback, log the user out
-	select {
-	case <-canceler.Messages:
-		return
-	case <-time.After(5 * time.Second):
-		logout(user)
-	}
+	loginChannel(user).BlockingSubscription(func(cancellogout <-chan string) {
+		//if we don't get a cancel message before we get the 5second callback, log the user out
+		select {
+		case <-cancellogout:
+			return
+		case <-time.After(5 * time.Second):
+			logout(user)
+		}
+	})
 }
 
 type WebsocketMessage struct {
@@ -70,11 +61,9 @@ func New() rack.Middleware {
 	ws.OnMessage(wsMessager)
 	ws.UseJSON()
 	ws.OnStorage(func() interface{} {
-		fmt.Println("Making New Storage")
 		var m WebsocketMessage
 		return &m
 	})
-	fmt.Println("I Did OnStorage")
 
 	return ws
 }
@@ -97,7 +86,7 @@ var wsOpener rack.Func = func(vars map[string]interface{}, next func()) {
 	}
 
 	if loggedIn {
-		redis.Client.Publish(cancelLogoutIndex(currentUser.ClashTag), "Doesn't matter what goes here")
+		loginChannel(currentUser.ClashTag).Publish("Doesn't matter what goes here")
 		closer := pubsuber.User(currentUser.ClashTag).ReceiveMessages(sendMessage)
 		t.OnClose(func() {
 			closer.Close()

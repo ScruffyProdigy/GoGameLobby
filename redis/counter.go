@@ -1,32 +1,40 @@
 package redis
 
-type Counter string
+type Counter struct {
+	Key
+}
+
+func newCounter(client Redis, key string) Counter {
+	return Counter{
+		Key: newKey(client, key),
+	}
+}
 
 func (this Counter) Set(val int64) {
-	err := Client.Set(string(this), val)
+	err := this.client.Set(this.key, val)
 	checkForError(err)
 }
 
 func (this Counter) SetIfEmpty(val int64) bool {
-	set, err := Client.Setnx(string(this), val)
+	set, err := this.client.Setnx(this.key, val)
 	checkForError(err)
 	return set
 }
 
 func (this Counter) Get() int64 {
-	val, err := Client.Get(string(this))
+	val, err := this.client.Get(this.key)
 	checkForError(err)
 	return val.Int64()
 }
 
 func (this Counter) GetSet(val int64) int64 {
-	newVal, err := Client.Getset(string(this), val)
+	newVal, err := this.client.Getset(this.key, val)
 	checkForError(err)
 	return newVal.Int64()
 }
 
 func (this Counter) Delete() bool {
-	deleted, err := Client.Del(string(this))
+	deleted, err := this.client.Del(this.key)
 	checkForError(err)
 	return deleted > 0
 }
@@ -37,25 +45,25 @@ func (this Counter) Clear() (int64, bool) {
 }
 
 func (this Counter) Increment() int64 {
-	val, err := Client.Incr(string(this))
+	val, err := this.client.Incr(this.key)
 	checkForError(err)
 	return val
 }
 
 func (this Counter) IncrementBy(val int64) int64 {
-	newVal, err := Client.Incrby(string(this), val)
+	newVal, err := this.client.Incrby(this.key, val)
 	checkForError(err)
 	return newVal
 }
 
 func (this Counter) Decrement() int64 {
-	val, err := Client.Decr(string(this))
+	val, err := this.client.Decr(this.key)
 	checkForError(err)
 	return val
 }
 
 func (this Counter) DecrementBy(val int64) int64 {
-	newVal, err := Client.Decrby(string(this), val)
+	newVal, err := this.client.Decrby(this.key, val)
 	checkForError(err)
 	return newVal
 }

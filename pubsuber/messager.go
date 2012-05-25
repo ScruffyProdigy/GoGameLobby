@@ -7,42 +7,20 @@ import (
 	"io"
 )
 
-func userMessageChannel(user string) string {
-	return "Users:" + user
+func userMessageChannel(user string) redis.Channel {
+	return redis.Client.Channel("User Channel:" + user)
 }
 
-func urlMessageChannel(url string) string {
-	return "Url:" + url
+func userStoredMessages(user string) redis.List {
+	return redis.Client.List("Users Stored Messages:" + user)
 }
 
-func userInstanceIndex(user string) string {
-	return "User Instances " + user
+func urlMessageChannel(url string) redis.Channel {
+	return redis.Client.Channel("Url Channel:" + url)
 }
 
-func messageReceiver(channel string, action func(string)) (io.Closer, error) {
-	t := trigger.New()
-	closeChannel := t.Channel()
-
-	sub, err := redis.Subscribe(channel)
-	if err != nil {
-		return nil, err
-	}
-
-	go func() {
-		defer sub.Close()
-		defer sub.Unsubscribe(channel)
-
-		for {
-			select {
-			case m := <-sub.Messages:
-				action(m.Elem.String())
-			case <-closeChannel:
-				return
-			}
-		}
-	}()
-
-	return t, nil
+func userInstanceCount(user string) redis.Counter {
+	return redis.Client.Counter("User Instances " + user)
 }
 
 type Target interface {
@@ -80,32 +58,32 @@ func makeString(message interface{}) string {
 func (this userTarget) SendMessage(message interface{}) {
 	stringMessage := makeString(message)
 	if this.IsActive() {
-		redis.Client.Publish(userMessageChannel(this.user), stringMessage)
+		userMessageChannel(this.user).Publish(stringMessage)
 	} else {
-		redis.Client.Lpush(userMessageChannel(this.user), stringMessage)
+		userStoredMessages(this.user).LeftPush(stringMessage)
 	}
 }
 
 func (this userTarget) ReceiveMessages(action func(message string)) io.Closer {
-	closer, _ := messageReceiver(userMessageChannel(this.user), action)
-	redis.Client.Incr(userInstanceIndex(this.user))
+	subscription := userMessageChannel(this.user).Subscribe(action)
+	userInstanceCount(this.user).Increment()
 
-	oldmessagecount, _ := redis.Client.Llen(userMessageChannel(this.user))
-	var i int64
-	for i = 0; i < oldmessagecount; i++ {
-		message, _ := redis.Client.Rpop(userMessageChannel(this.user))
-		action(message.String())
+	for {
+		message, ok := userStoredMessages(this.user).RightPop()
+		if !ok {
+			break
+		}
+		action(message)
 	}
 
 	return trigger.OnClose(func() {
-		closer.Close()
-		redis.Client.Decr(userInstanceIndex(this.user))
+		subscription.Close()
+		userInstanceCount(this.user).Decrement()
 	})
 }
 
 func (this userTarget) IsActive() bool {
-	count, _ := redis.Client.Get(userInstanceIndex(this.user))
-	return count.Int64() > 0
+	return userInstanceCount(this.user).Get() > 0
 }
 
 func Url(url string) Target {
@@ -118,12 +96,11 @@ type urlTarget struct {
 
 func (this urlTarget) SendMessage(message interface{}) {
 	stringMessage := makeString(message)
-	redis.Client.Publish(urlMessageChannel(this.url), stringMessage)
+	urlMessageChannel(this.url).Publish(stringMessage)
 }
 
 func (this urlTarget) ReceiveMessages(action func(message string)) io.Closer {
-	closer, _ := messageReceiver(urlMessageChannel(this.url), action)
-	return closer
+	return urlMessageChannel(this.url).Subscribe(action)
 }
 
 func (this urlTarget) IsActive() bool {

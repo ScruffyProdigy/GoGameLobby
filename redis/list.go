@@ -1,21 +1,29 @@
 package redis
 
-type List string
+type List struct {
+	Key
+}
+
+func newList(client Redis, key string) List {
+	return List{
+		Key: newKey(client, key),
+	}
+}
 
 func (this List) IsValid() bool {
-	thistype, err := Client.Type(string(this))
+	thistype, err := this.client.Type(this.key)
 	checkForError(err)
 	return thistype == "list"
 }
 
 func (this List) Delete() bool {
-	deleted, err := Client.Del(string(this))
+	deleted, err := this.client.Del(this.key)
 	checkForError(err)
 	return deleted > 0
 }
 
 func (this List) Length() int64 {
-	length, err := Client.Llen(string(this))
+	length, err := this.client.Llen(this.key)
 	checkForError(err)
 	return length
 }
@@ -23,14 +31,14 @@ func (this List) Length() int64 {
 func (this List) LeftPush(items ...string) (length int64) {
 	var err error
 	for _, item := range items {
-		length, err = Client.Lpush(string(this), item)
+		length, err = this.client.Lpush(this.key, item)
 		checkForError(err)
 	}
 	return length
 }
 
 func (this List) LeftPushIfExists(item string) int64 {
-	length, err := Client.Lpushx(string(this), item)
+	length, err := this.client.Lpushx(this.key, item)
 	checkForError(err)
 	return length
 }
@@ -38,22 +46,22 @@ func (this List) LeftPushIfExists(item string) int64 {
 func (this List) RightPush(items ...string) (length int64) {
 	var err error
 	for _, item := range items {
-		length, err = Client.Rpush(string(this), item)
+		length, err = this.client.Rpush(this.key, item)
 		checkForError(err)
 	}
 	return length
 }
 
 func (this List) RightPushIfExists(item string) int64 {
-	length, err := Client.Rpushx(string(this), item)
+	length, err := this.client.Rpushx(this.key, item)
 	checkForError(err)
 	return length
 }
 
-func (this List) LeftPop() string {
-	item, err := Client.Lpop(string(this))
+func (this List) LeftPop() (string, bool) {
+	item, err := this.client.Lpop(this.key)
 	checkForError(err)
-	return item.String()
+	return item.String(), item != nil
 }
 
 func (this List) BlockUntilLeftPop() string {
@@ -61,19 +69,19 @@ func (this List) BlockUntilLeftPop() string {
 	return item
 }
 
-func (this List) BlockUntilLeftPopWithTimeout(timeout int64) (string, error) {
-	item, err := Client.Blpop([]string{string(this)}, timeout)
-	if isTimeout(&err) {
-		return "", err
+func (this List) BlockUntilLeftPopWithTimeout(timeout int64) (string, bool) {
+	item, err := this.client.Blpop([]string{this.key}, timeout)
+	if isTimeout(err) {
+		return "", false
 	}
 	checkForError(err)
-	return item.StringMap()[string(this)], nil
+	return item.StringMap()[this.key], true
 }
 
-func (this List) RightPop() string {
-	item, err := Client.Rpop(string(this))
+func (this List) RightPop() (string, bool) {
+	item, err := this.client.Rpop(this.key)
 	checkForError(err)
-	return item.String()
+	return item.String(), item != nil
 }
 
 func (this List) BlockUntilRightPop() string {
@@ -81,29 +89,29 @@ func (this List) BlockUntilRightPop() string {
 	return item
 }
 
-func (this List) BlockUntilRightPopWithTimeout(timeout int64) (string, error) {
-	item, err := Client.Brpop([]string{string(this)}, timeout)
-	if isTimeout(&err) {
-		return "", err
+func (this List) BlockUntilRightPopWithTimeout(timeout int64) (string, bool) {
+	item, err := this.client.Brpop([]string{this.key}, timeout)
+	if isTimeout(err) {
+		return "", false
 	}
 	checkForError(err)
-	return item.StringMap()[string(this)], nil
+	return item.StringMap()[this.key], true
 }
 
 func (this List) Index(index int) string {
-	item, err := Client.Lindex(string(this), index)
+	item, err := this.client.Lindex(this.key, index)
 	checkForError(err)
 	return item.String()
 }
 
 func (this List) Remove(item string) int64 {
-	count, err := Client.Lrem(string(this), 0, item)
+	count, err := this.client.Lrem(this.key, 0, item)
 	checkForError(err)
 	return count
 }
 
 func (this List) Set(index int, item string) {
-	err := Client.Lset(string(this), index, item)
+	err := this.client.Lset(this.key, index, item)
 	checkForError(err)
 }
 
@@ -116,24 +124,24 @@ func (this List) InsertAfter(pivot, item string) int64 {
 }
 
 func (this List) Insert(location string, pivot, item string) int64 {
-	index, err := Client.Linsert(string(this), location, pivot, item)
+	index, err := this.client.Linsert(this.key, location, pivot, item)
 	checkForError(err)
 	return index
 }
 
 func (this List) GetFromRange(left, right int) []string {
-	items, err := Client.Lrange(string(this), left, right)
+	items, err := this.client.Lrange(this.key, left, right)
 	checkForError(err)
 	return items.StringArray()
 }
 
 func (this List) TrimToRange(left, right int) {
-	err := Client.Ltrim(string(this), left, right)
+	err := this.client.Ltrim(this.key, left, right)
 	checkForError(err)
 }
 
 func (this List) MoveLastItemToList(newList List) string {
-	item, err := Client.Rpoplpush(string(this), string(newList))
+	item, err := this.client.Rpoplpush(this.key, newList.key)
 	checkForError(err)
 	return item.String()
 }
@@ -143,11 +151,11 @@ func (this List) BlockUntilMoveLastItemToList(newList List) string {
 	return item
 }
 
-func (this List) BlockUntilMoveLastItemToListWithTimeout(newList List, timeout int64) (string, error) {
-	item, err := Client.Brpoplpush(string(this), string(newList), timeout)
-	if isTimeout(&err) {
-		return "", err
+func (this List) BlockUntilMoveLastItemToListWithTimeout(newList List, timeout int64) (string, bool) {
+	item, err := this.client.Brpoplpush(this.key, newList.key, timeout)
+	if isTimeout(err) {
+		return "", false
 	}
 	checkForError(err)
-	return item.String(), nil
+	return item.String(), true
 }

@@ -1,14 +1,10 @@
 package redis
 
-import (
-	"../mutex"
-)
-
 type ReadWriteMutex struct {
 	readers int
-	write   mutex.Mutex
-	Read    mutex.Mutex
-	Write   mutex.Mutex
+	write   Mutex
+	Read    Mutex
+	Write   Mutex
 }
 
 type writeMutex struct {
@@ -37,21 +33,11 @@ func (this writeMutex) Force(action func()) {
 	this.write.Force(lockAllReads(this.ReadWriteMutex, action))
 }
 
-func RWMutex(key string, readers int) (*ReadWriteMutex, error) {
+func newRWMutex(client Redis, key string, readers int) *ReadWriteMutex {
 	rw := new(ReadWriteMutex)
 	rw.readers = readers
-
-	var err error
-	rw.write, err = Mutex(key + ":Write")
-	if err != nil {
-		return nil, err
-	}
-
-	rw.Read, err = Semaphore(key+":Read", readers)
-	if err != nil {
-		return nil, err
-	}
-
+	rw.write = client.Mutex(key + ":Write")
+	rw.Read = client.Semaphore(key+":Read", readers)
 	rw.Write = writeMutex{rw}
-	return rw, nil
+	return rw
 }

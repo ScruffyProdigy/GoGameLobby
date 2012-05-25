@@ -1,45 +1,79 @@
 package redis
 
 import (
-	"../loadconfiguration"
 	"errors"
 	"github.com/simonz05/godis/redis"
 )
 
-var Client *redis.Client
-
-type redisConfig struct {
+type Config struct {
 	NetAddress string `json:"netaddr"`
 	DBid       int    `json:"dbid"`
 	Password   string `json:"password"`
 }
 
-var config redisConfig
+type Redis struct {
+	client *redis.Client
+	config Config
+}
 
-func (r redisConfig) Redis() *redis.Client {
+func New(config Config) *Redis {
+	this := new(Redis)
+	this.config = config
+	this.client = this.newClient()
+	return this
+}
+
+func (this Redis) newClient() *redis.Client {
 	return redis.New(
-		r.NetAddress,
-		r.DBid,
-		r.Password,
+		this.config.NetAddress,
+		this.config.DBid,
+		this.config.Password,
 	)
 }
 
-func Subscribe(url string) (*redis.Sub, error) {
-	r := config.Redis()
-	return r.Subscribe(url)
-}
-
-func init() {
-	configurations.Load("redis", &config)
-	Client = config.Redis()
-
-	test, err := Client.Echo("test")
+func (this Redis) Test() error {
+	test, err := this.client.Echo("test")
 	if err != nil || test.String() != "test" {
-		panic("Please run Redis before executing this")
+		return errors.New("Please run Redis before starting")
 	}
+	return nil
 }
 
-var TimeoutError = errors.New("Timeout Error")
+func (this Redis) Key(key string) Key {
+	return newKey(this, key)
+}
+
+func (this Redis) String(key string) String {
+	return newString(this, key)
+}
+
+func (this Redis) Counter(key string) Counter {
+	return newCounter(this, key)
+}
+
+func (this Redis) Set(key string) Set {
+	return newSet(this, key)
+}
+
+func (this Redis) List(key string) List {
+	return newList(this, key)
+}
+
+func (this Redis) Mutex(key string) Mutex {
+	return newMutex(this, key, 1)
+}
+
+func (this Redis) Semaphore(key string, count int) Mutex {
+	return newMutex(this, key, count)
+}
+
+func (this Redis) ReadWriteMutex(key string, readers int) *ReadWriteMutex {
+	return newRWMutex(this, key, readers)
+}
+
+func (this Redis) Channel(key string) Channel {
+	return newChannel(this, key)
+}
 
 func checkForError(err error) {
 	if err != nil {
@@ -47,10 +81,6 @@ func checkForError(err error) {
 	}
 }
 
-func isTimeout(err *error) bool {
-	if (*err).Error() == "timeout expired" {
-		*err = TimeoutError
-		return true
-	}
-	return false
+func isTimeout(err error) bool {
+	return err != nil && err.Error() == "timeout expired"
 }

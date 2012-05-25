@@ -26,7 +26,7 @@ func (m Mode) start() (restart bool) {
 		for group, full := range m.GroupCount {
 			preStartInfo[group] = make(map[string]string)
 			for i := 0; i < full; i++ {
-				user := queues(m.gamemode(), group).LeftPop()
+				user, _ := queues(m.gamemode(), group).LeftPop()
 				join, _ := joinData(user, m.gamemode()).Clear()
 				preStartInfo[group][user] = join
 				userQueues(user).Remove(m.gamemode())
