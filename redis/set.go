@@ -4,7 +4,7 @@ type Set struct {
 	Key
 }
 
-func newSet(client Redis, key string) Set {
+func newSet(client Root, key string) Set {
 	return Set{
 		Key: newKey(client, key),
 	}
@@ -40,10 +40,10 @@ func (this Set) IsMember(item string) bool {
 	return isMember
 }
 
-func (this Set) Cardinality() int64 {
-	cardinality, err := this.client.Scard(this.key)
+func (this Set) Size() int64 {
+	size, err := this.client.Scard(this.key)
 	checkForError(err)
-	return cardinality
+	return size
 }
 
 func (this Set) RandomMember() string {

@@ -4,7 +4,7 @@ type String struct {
 	Key
 }
 
-func newString(client Redis, key string) String {
+func newString(client Root, key string) String {
 	return String{
 		Key: newKey(client, key),
 	}

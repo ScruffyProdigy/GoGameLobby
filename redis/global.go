@@ -4,10 +4,10 @@ import (
 	"../loadconfiguration"
 )
 
-var Client *Redis
+var Redis Prefix
 
 func init() {
 	var c Config
 	configurations.Load("redis", &c)
-	Client = New(c)
+	Redis = New(c)
 }

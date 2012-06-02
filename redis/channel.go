@@ -90,11 +90,11 @@ func (this Channel) Publish(message string) int64 {
 }
 
 type Channel struct {
-	client Redis
+	client Root
 	key    string
 }
 
-func newChannel(client Redis, key string) Channel {
+func newChannel(client Root, key string) Channel {
 	return Channel{
 		client: client,
 		key:    key,

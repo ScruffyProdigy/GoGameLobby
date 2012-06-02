@@ -8,19 +8,19 @@ import (
 )
 
 func userMessageChannel(user string) redis.Channel {
-	return redis.Client.Channel("User Channel:" + user)
+	return redis.Redis.Channel("User Channel:" + user)
 }
 
 func userStoredMessages(user string) redis.List {
-	return redis.Client.List("Users Stored Messages:" + user)
+	return redis.Redis.List("Users Stored Messages:" + user)
 }
 
 func urlMessageChannel(url string) redis.Channel {
-	return redis.Client.Channel("Url Channel:" + url)
+	return redis.Redis.Channel("Url Channel:" + url)
 }
 
-func userInstanceCount(user string) redis.Counter {
-	return redis.Client.Counter("User Instances " + user)
+func userInstanceCount(user string) redis.Integer {
+	return redis.Redis.Integer("User Instances " + user)
 }
 
 type Target interface {

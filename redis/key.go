@@ -10,11 +10,23 @@ type Key struct {
 	client *redis.Client
 }
 
-func newKey(client Redis, key string) Key {
+func newKey(client Root, key string) Key {
 	return Key{
 		key:    key,
 		client: client.client,
 	}
+}
+
+func (this Key) ArbitraryCommand(command string, arguments ...string) []string {
+	args := make([]string,len(arguments)+1)
+	args[0] = this.key
+	copy(args[1:],arguments)
+	r := redis.SendStr(this.client.Rw,command,args...)
+	checkForError(r.Err)
+	if r.Elem != nil {
+		return []string{r.Elem.String()}
+	}
+	return r.StringArray()
 }
 
 func (this Key) Exists() bool {

@@ -14,7 +14,7 @@ type redisMutex struct {
 	processes List
 }
 
-func newMutex(client Redis, key string, count int) Mutex {
+func newMutex(client Prefix, key string, count int) Mutex {
 	m := new(redisMutex)
 	m.init = client.String(key + ":Initialized")
 	m.processes = client.List(key)

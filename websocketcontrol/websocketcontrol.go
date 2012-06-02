@@ -8,7 +8,6 @@ import (
 	"../redis"
 	"../trigger"
 	"encoding/json"
-	"fmt"
 	"github.com/HairyMezican/Middleware/logger"
 	"github.com/HairyMezican/TheRack/httper"
 	"github.com/HairyMezican/TheRack/rack"
@@ -21,7 +20,7 @@ const (
 )
 
 func loginChannel(user string) redis.Channel {
-	return redis.Client.Channel("Cancel Logout " + user)
+	return redis.Redis.Channel("Cancel Logout " + user)
 }
 
 var logoutChores = make([]func(string), 0)

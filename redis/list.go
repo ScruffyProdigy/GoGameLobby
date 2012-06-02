@@ -4,7 +4,7 @@ type List struct {
 	Key
 }
 
-func newList(client Redis, key string) List {
+func newList(client Root, key string) List {
 	return List{
 		Key: newKey(client, key),
 	}
@@ -22,6 +22,8 @@ func (this List) Length() int64 {
 	return length
 }
 
+
+//TODO: either pass in one item, and return a bool, or figure out length properly
 func (this List) LeftPush(items ...string) (length int64) {
 	var err error
 	for _, item := range items {
@@ -37,6 +39,8 @@ func (this List) LeftPushIfExists(item string) int64 {
 	return length
 }
 
+
+//TODO: either pass in one item, and return a bool, or figure out length properly
 func (this List) RightPush(items ...string) (length int64) {
 	var err error
 	for _, item := range items {

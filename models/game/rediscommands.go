@@ -20,7 +20,7 @@ type StartLoc struct {
 }
 
 func init() {
-	QueueMutex = redis.Client.ReadWriteMutex("QueueMutex", 16)
+	QueueMutex = redis.Redis.ReadWriteMutex("QueueMutex", 16)
 
 	websocketcontrol.AddLogoutChore(func(username string) {
 		RemoveFromAllQueues(username)
@@ -52,23 +52,23 @@ func init() {
 }
 
 func userQueues(user string) redis.Set {
-	return redis.Client.Set("users" + sEp + user + sEp + "queues")
+	return redis.Redis.Set("users" + sEp + user + sEp + "queues")
 }
 
 func userClashes(user string) redis.Set {
-	return redis.Client.Set("users" + sEp + user + sEp + "clashes")
+	return redis.Redis.Set("users" + sEp + user + sEp + "clashes")
 }
 
 func queues(gamemode, group string) redis.List {
-	return redis.Client.List("queues" + sEp + gamemode + sEp + "groups" + sEp + group)
+	return redis.Redis.List("queues" + sEp + gamemode + sEp + "groups" + sEp + group)
 }
 
 func joinData(user, gamemode string) redis.String {
-	return redis.Client.String("queues" + sEp + gamemode + sEp + "players" + sEp + user)
+	return redis.Redis.String("queues" + sEp + gamemode + sEp + "players" + sEp + user)
 }
 
 func clashUrl(user, gamemode string) redis.String {
-	return redis.Client.String("clashes" + sEp + user + sEp + gamemode)
+	return redis.Redis.String("clashes" + sEp + user + sEp + gamemode)
 }
 
 type UserClash struct {
