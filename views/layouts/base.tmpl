@@ -24,9 +24,9 @@
 				</header>
 				<ul>
 				{{range .Clashes}}
-					<a href="{{.Url}}" class="clash-{{.Game.Name}}{{.Mode}}">
+					<a href="{{.Url}}" class="clash-{{.Game}}{{.Mode}}">
 						<li>
-							{{.Game.Name}} - {{.Mode}}
+							{{.Game}} - {{.Mode}}
 						</li>
 					</a>
 				{{end}}

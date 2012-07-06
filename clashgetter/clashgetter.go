@@ -3,6 +3,7 @@ package clashgetter
 import (
 	"../login"
 	"../models/game"
+	"../models/clash"
 )
 
 type Middleware struct {
@@ -14,7 +15,7 @@ func (Middleware) Run(vars map[string]interface{}, next func()) {
 		queues := game.GetUserQueues(currentUser.ClashTag)
 		vars["Queues"] = queues
 
-		clashes := game.GetUserClashes(currentUser.ClashTag)
+		clashes := clash.FromUser(currentUser.ClashTag)
 		vars["Clashes"] = clashes
 	}
 	next()

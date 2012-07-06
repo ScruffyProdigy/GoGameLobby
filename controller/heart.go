@@ -134,6 +134,6 @@ func (this Heart) Set(k string, v interface{}) {
 
 // this is used to get previously set variables
 // the most common variable to get is the one we stored for you for all member methods
-func (this Heart) Get(k string) interface{} {
+func (this Heart) GetVar(k string) interface{} {
 	return this.Vars[k]
 }

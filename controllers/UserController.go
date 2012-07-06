@@ -24,7 +24,7 @@ func (this UserController) Index() {
 }
 
 func (this UserController) Show() {
-	u := this.Get("User").(*user.User)
+	u := this.GetVar("User").(*user.User)
 
 	this.Set("Title", u.ClashTag)
 }

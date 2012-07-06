@@ -24,7 +24,7 @@ func (this LodgeController) Index() {
 }
 
 func (this LodgeController) Show() {
-	l, isLodge := this.Get("Lodge").(*lodge.Lodge)
+	l, isLodge := this.GetVar("Lodge").(*lodge.Lodge)
 	if !isLodge {
 		panic("Can't find lodge")
 	}

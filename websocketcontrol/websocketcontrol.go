@@ -1,12 +1,13 @@
 package websocketcontrol
 
 import (
-	"../../Middleware/websocketer"
+	"github.com/HairyMezican/Middleware/websocketer"
 	"../login"
 	"../models/user"
 	"../pubsuber"
-	"../redis"
+	"github.com/HairyMezican/SimpleRedis/redis"
 	"../trigger"
+	"../global"
 	"encoding/json"
 	"github.com/HairyMezican/Middleware/logger"
 	"github.com/HairyMezican/TheRack/httper"
@@ -20,7 +21,7 @@ const (
 )
 
 func loginChannel(user string) redis.Channel {
-	return redis.Redis.Channel("Cancel Logout " + user)
+	return global.Redis.Channel("Cancel Logout " + user)
 }
 
 var logoutChores = make([]func(string), 0)

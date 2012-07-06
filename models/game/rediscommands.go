@@ -1,11 +1,12 @@
 package game
 
 import (
-	"../../redis"
+	"github.com/HairyMezican/SimpleRedis/redis"
+	"../../global"
 	"../../websocketcontrol"
-	"../user"
-	"fmt"
 	"strings"
+	"../clash"
+	"../user"
 )
 
 var QueueMutex *redis.ReadWriteMutex
@@ -20,73 +21,25 @@ type StartLoc struct {
 }
 
 func init() {
-	QueueMutex = redis.Redis.ReadWriteMutex("QueueMutex", 16)
+	QueueMutex = global.Redis.ReadWriteMutex("QueueMutex", 16)
 
 	websocketcontrol.AddLogoutChore(func(username string) {
 		RemoveFromAllQueues(username)
 	})
-
-	websocketcontrol.MessageAction("start", func(u *user.User, data interface{}) interface{} {
-		startinfo, ok := data.(map[string]interface{})
-		if !ok {
-			fmt.Println("Couldn't Get Start Info")
-			return nil
-		}
-
-		game, ok := startinfo["game"].(string)
-		if !ok {
-			fmt.Println("Couldn't Get Game")
-			return nil
-		}
-
-		mode, ok := startinfo["mode"].(string)
-		if !ok {
-			fmt.Println("Couldn't Get Mode")
-			return nil
-		}
-
-		url := clashUrl(u.ClashTag, game+sEp+mode).Get()
-		result := map[string]StartLoc{"startloc": StartLoc{Loc: url}}
-		return result
-	})
-}
-
-func userQueues(user string) redis.Set {
-	return redis.Redis.Set("users" + sEp + user + sEp + "queues")
-}
-
-func userClashes(user string) redis.Set {
-	return redis.Redis.Set("users" + sEp + user + sEp + "clashes")
-}
-
-func queues(gamemode, group string) redis.List {
-	return redis.Redis.List("queues" + sEp + gamemode + sEp + "groups" + sEp + group)
-}
-
-func joinData(user, gamemode string) redis.String {
-	return redis.Redis.String("queues" + sEp + gamemode + sEp + "players" + sEp + user)
-}
-
-func clashUrl(user, gamemode string) redis.String {
-	return redis.Redis.String("clashes" + sEp + user + sEp + gamemode)
 }
 
 type UserClash struct {
-	Game *Game
+	Game string
 	Mode string
 	Url  string
 }
 
 func GetUserClashes(user string) (result []UserClash) {
-	clashes := userClashes(user).Members()
+	clashes := clash.FromUser(user)
 
 	result = make([]UserClash, 0, len(clashes))
-	for _, clash := range clashes {
-		clashInfo := strings.SplitN(clash, sEp, 2)
-
-		game := G.GameFromName(clashInfo[0])
-		mode := clashInfo[1]
-		url := clashUrl(user, clash).Get()
+	for _, c := range(clashes) {
+		game,mode,url := c.Details(user)
 
 		clashStruct := UserClash{
 			Game: game,
@@ -103,8 +56,8 @@ type UserQueue struct {
 	Mode string
 }
 
-func GetUserQueues(user string) (result []UserQueue) {
-	queues := userQueues(user).Members()
+func GetUserQueues(u string) (result []UserQueue) {
+	queues := <-(&user.User{ClashTag:u}).Queues().Members()
 
 	result = make([]UserQueue, 0, len(queues))
 	for _, queue := range queues {

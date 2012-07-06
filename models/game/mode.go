@@ -2,10 +2,12 @@ package game
 
 import (
 	"../../gamedata"
-	"../../pubsuber"
 	"errors"
 	"fmt"
-	neturl "net/url"
+	"github.com/HairyMezican/SimpleRedis/redis"
+	"../user"
+	"../clash"
+	"../../global"
 )
 
 type Mode struct {
@@ -14,36 +16,54 @@ type Mode struct {
 	GroupCount map[string]int //a list of the groups needed for the mode, and the number of people needed to fill the group
 }
 
-func (m Mode) gamemode() string {
+func (m Mode) GameMode() string {
 	return m.game + sEp + m.mode
+}
+
+func (m Mode) Mode() string {
+	return m.mode
+}
+
+func (m Mode) Game() string {
+	return m.game
+}
+
+func (m Mode) gatherPlayers() map[string]map[string]string {
+	players := make(map[string]map[string]string)
+	for group, full := range m.GroupCount {
+		players[group] = make(map[string]string)
+		for i := 0; i < full; i++ {
+			u := <-m.queues(group).LeftPop()
+			join := <-m.joinData(u).Get()
+			m.joinData(u).Delete()
+			players[group][u] = join
+			(&user.User{ClashTag:u}).Queues().Remove(m.GameMode())
+		}
+	}
+	return players
+}
+
+func (m Mode) ungatherPlayers(players map[string]map[string]string) {
+	for group, players := range players {
+		for u, join := range players {
+			(&user.User{ClashTag:u}).Queues().Add(m.GameMode())
+			m.queues(group).LeftPush(u)
+			m.joinData(u).Set(join)
+		}
+	}
 }
 
 func (m Mode) start() (restart bool) {
 	var startInfo gamedata.StartInfo
 	var err error
 	start := QueueMutex.Write.Try(func() {
-		preStartInfo := make(map[string]map[string]string)
-		for group, full := range m.GroupCount {
-			preStartInfo[group] = make(map[string]string)
-			for i := 0; i < full; i++ {
-				user, _ := queues(m.gamemode(), group).LeftPop()
-				join, _ := joinData(user, m.gamemode()).Clear()
-				preStartInfo[group][user] = join
-				userQueues(user).Remove(m.gamemode())
-			}
-		}
+		players := m.gatherPlayers()
 
 		model := G.GameFromName(m.game)
-		startInfo, err = model.StartClash(m.mode, preStartInfo)
+		startInfo, err = model.StartClash(m.mode, players)
 		if err != nil {
 			//there was an error trying to start the clash, put everybody back in the queue
-			for group, players := range preStartInfo {
-				for user, join := range players {
-					userQueues(user).Add(m.gamemode())
-					queues(m.gamemode(), group).LeftPush(user)
-					joinData(user, m.gamemode()).Set(join)
-				}
-			}
+			m.ungatherPlayers(players)
 		}
 	})
 
@@ -53,34 +73,12 @@ func (m Mode) start() (restart bool) {
 
 	if start {
 		// we've loaded the players in the queue, time to start it
-		m.startClash(startInfo)
+		clash.New(m,startInfo)
 		return false
 	}
 
 	// somebody else was trying to start a game, loop through again to check to see if the game can start
 	return true
-}
-
-func (m Mode) addPlayerToClash(user string, url string, options map[string]string) {
-	urlvals := make(neturl.Values)
-	for k, v := range options {
-		urlvals.Add(k, v)
-	}
-
-	query := urlvals.Encode()
-	if query != "" {
-		url += "?" + query
-	}
-
-	userClashes(user).Add(m.gamemode())
-	clashUrl(user, m.gamemode()).Set(url)
-	pubsuber.User(user).SendMessage(map[string]Start{"start": Start{Game: m.game, Mode: m.mode}})
-}
-
-func (m Mode) startClash(startInfo gamedata.StartInfo) {
-	for p, vals := range startInfo.Players {
-		go m.addPlayerToClash(p, startInfo.Url, vals.UrlValues)
-	}
 }
 
 func (m Mode) checkForStart() {
@@ -92,7 +90,7 @@ func (m Mode) checkForStart() {
 		//if the queue is long enough to start, start it
 		QueueMutex.Read.Force(func() {
 			for group, full := range m.GroupCount {
-				count := int(queues(m.gamemode(), group).Length())
+				count := <-m.queues(group).Length()
 				if count < full {
 					start = false
 					return
@@ -110,7 +108,7 @@ func (m Mode) checkForStart() {
 
 }
 
-func (m Mode) AddToQueue(user, group, join string) (err error) {
+func (m Mode) AddToQueue(u, group, join string) (err error) {
 
 	defer func() {
 		rec := recover()
@@ -129,26 +127,26 @@ func (m Mode) AddToQueue(user, group, join string) (err error) {
 	}()
 
 	//add the user to the set of players queuing for a clash (and find out if they're already on the list)
-	isNew := userQueues(user).Add(m.gamemode())
+	isNew := <-(&user.User{ClashTag:u}).Queues().Add(m.GameMode())
 	if !isNew {
 		//the player is already part of the game, remove them from their old queue first
 		for group, _ := range m.GroupCount {
-			if queues(m.gamemode(), group).Remove(user) > 0 {
+			if <-m.queues(group).Remove(u) > 0 {
 				break
 			}
 		}
 	}
 
 	//add the user to the queue
-	queues(m.gamemode(), group).RightPush(user)
-	joinData(user, m.gamemode()).Set(join)
+	m.queues(group).RightPush(u)
+	m.joinData(u).Set(join)
 
 	go m.checkForStart()
 
 	return nil
 }
 
-func (m Mode) RemoveFromQueue(user string) (err error) {
+func (m Mode) RemoveFromQueue(u string) (err error) {
 	defer func() {
 		rec := recover()
 		if rec != nil {
@@ -165,18 +163,30 @@ func (m Mode) RemoveFromQueue(user string) (err error) {
 		}
 	}()
 
-	if !userQueues(user).Remove(m.gamemode()) {
+	if <-(&user.User{ClashTag:u}).Queues().Remove(m.GameMode()) {
 		//not in this mode
 		return
 	}
 	for group, _ := range m.GroupCount {
-		if queues(m.gamemode(), group).Remove(user) > 0 {
+		if <-m.queues(group).Remove(u) > 0 {
 			break
 		}
 	}
-	joinData(user, m.gamemode()).Delete()
+	m.joinData(u).Delete()
 
 	return nil
+}
+
+func (m Mode) prefix() redis.Prefix {
+	return global.Redis.Prefix("queues "+m.GameMode()+" ")
+}
+
+func (m Mode) queues(group string) redis.List {
+	return m.prefix().List("groups " + group)
+}
+
+func (m Mode) joinData(u string) redis.String {
+	return m.prefix().String("players " + u)
 }
 
 func RemoveFromAllQueues(user string) (err error) {

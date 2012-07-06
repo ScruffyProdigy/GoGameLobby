@@ -1,26 +1,27 @@
 package pubsuber
 
 import (
-	"../redis"
+	"github.com/HairyMezican/SimpleRedis/redis"
+	"../global"
 	"../trigger"
 	"encoding/json"
 	"io"
 )
 
 func userMessageChannel(user string) redis.Channel {
-	return redis.Redis.Channel("User Channel:" + user)
+	return global.Redis.Channel("User Channel:" + user)
 }
 
 func userStoredMessages(user string) redis.List {
-	return redis.Redis.List("Users Stored Messages:" + user)
+	return global.Redis.List("Users Stored Messages:" + user)
 }
 
 func urlMessageChannel(url string) redis.Channel {
-	return redis.Redis.Channel("Url Channel:" + url)
+	return global.Redis.Channel("Url Channel:" + url)
 }
 
 func userInstanceCount(user string) redis.Integer {
-	return redis.Redis.Integer("User Instances " + user)
+	return global.Redis.Integer("User Instances " + user)
 }
 
 type Target interface {
@@ -65,11 +66,11 @@ func (this userTarget) SendMessage(message interface{}) {
 }
 
 func (this userTarget) ReceiveMessages(action func(message string)) io.Closer {
-	subscription := userMessageChannel(this.user).Subscribe(action)
+	_,subscription := userMessageChannel(this.user).Subscribe(action)
 	userInstanceCount(this.user).Increment()
 
 	for {
-		message, ok := userStoredMessages(this.user).RightPop()
+		message, ok := <-userStoredMessages(this.user).RightPop()
 		if !ok {
 			break
 		}
@@ -83,7 +84,7 @@ func (this userTarget) ReceiveMessages(action func(message string)) io.Closer {
 }
 
 func (this userTarget) IsActive() bool {
-	return userInstanceCount(this.user).Get() > 0
+	return <-userInstanceCount(this.user).Get() > 0
 }
 
 func Url(url string) Target {
@@ -100,7 +101,8 @@ func (this urlTarget) SendMessage(message interface{}) {
 }
 
 func (this urlTarget) ReceiveMessages(action func(message string)) io.Closer {
-	return urlMessageChannel(this.url).Subscribe(action)
+	_,result := urlMessageChannel(this.url).Subscribe(action)
+	return result
 }
 
 func (this urlTarget) IsActive() bool {

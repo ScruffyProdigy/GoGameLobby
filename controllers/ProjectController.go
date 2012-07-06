@@ -48,7 +48,7 @@ func (ProjectController) VarName() string {
 
 func (this ProjectController) Show() {
 	log := (logger.V)(this.Vars).Get()
-	g, isGame := this.Get("Game").(*game.Game)
+	g, isGame := this.GetVar("Game").(*game.Game)
 	if !isGame {
 		panic("Can't find Game")
 	}
@@ -92,7 +92,7 @@ func (this ProjectController) Show() {
 }
 
 func (this ProjectController) Update() {
-	g, isGame := this.Get("Game").(*game.Game)
+	g, isGame := this.GetVar("Game").(*game.Game)
 	if !isGame {
 		panic("Can't find Game")
 	}
@@ -131,7 +131,7 @@ func (this ProjectController) Update() {
 }
 
 func (this ProjectController) Create() {
-	l, isLodge := this.Get("Lodge").(*lodge.Lodge)
+	l, isLodge := this.GetVar("Lodge").(*lodge.Lodge)
 	if !isLodge {
 		panic("Cannot find lodge")
 	}
@@ -157,7 +157,7 @@ func (this ProjectController) Create() {
 }
 
 func (this ProjectController) PostMemberJoin() {
-	g, isGame := this.Get("Game").(*game.Game)
+	g, isGame := this.GetVar("Game").(*game.Game)
 	if !isGame {
 		panic("Can't find Game")
 	}
@@ -206,8 +206,12 @@ func (this ProjectController) PostMemberJoin() {
 	this.Render("join")
 }
 
+func (this ProjectController) PutMemberResults() {
+	
+}
+
 func (this ProjectController) join(mode, group, join string) {
-	g, _ := this.Get("Game").(*game.Game)
+	g, _ := this.GetVar("Game").(*game.Game)
 	u, _ := (login.V)(this.Vars).CurrentUser()
 
 	m, err := g.GetMode(mode)

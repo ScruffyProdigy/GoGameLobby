@@ -5,6 +5,8 @@ import (
 	"github.com/HairyMezican/goauth2/oauth"
 	"launchpad.net/mgo"
 	"launchpad.net/mgo/bson"
+	"../../global"
+	"github.com/HairyMezican/SimpleRedis/redis"
 )
 
 var U *UserCollection = new(UserCollection)
@@ -75,6 +77,14 @@ func (this *User) GetID() bson.ObjectId {
 
 func (this *User) SetID(id bson.ObjectId) {
 	this.ID = id
+}
+
+func (this *User) Queues() redis.Set {
+	return global.Redis.Set("users " + this.ClashTag + " queues")
+}
+
+func (this *User) Clashes() redis.Set {
+	return global.Redis.Set("users " + this.ClashTag + " clashes")
 }
 
 /*
