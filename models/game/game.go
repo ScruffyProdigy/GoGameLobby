@@ -6,8 +6,8 @@ import (
 	"../../messenger"
 	"../lodge"
 	"../user"
-	"launchpad.net/mgo"
-	"launchpad.net/mgo/bson"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 )
 
 const (
@@ -87,7 +87,10 @@ func (this *Game) GameUrl() string {
 }
 
 func (this *Game) Message(message, result interface{}) error {
-	return messenger.JSONmessage(message, this.CommUrl, result)
+	print("Querying Game - ")
+	err := messenger.JSONmessage(message, this.CommUrl, result)
+	print("Response Received\n")
+	return err
 }
 
 func (this *Game) GetPlayerCounts(modename string) (gamedata.ModePlayerCounts, error) {
@@ -97,6 +100,7 @@ func (this *Game) GetPlayerCounts(modename string) (gamedata.ModePlayerCounts, e
 	Data.Mode.Mode = modename
 
 	var Result gamedata.ModePlayerCounts
+	print("Need To Get Player Counts\n")
 	err := this.Message(Data, &Result)
 
 	return Result, err
@@ -109,6 +113,7 @@ func (this *Game) GetGameModes(u *user.User) (map[string]gamedata.ModeInfo, erro
 	Data.Mode.User = u.ClashTag
 
 	var Result map[string]gamedata.ModeInfo
+	print("Need to Get Game Modes\n")
 	err := this.Message(Data, &Result)
 
 	return Result, err
@@ -123,6 +128,7 @@ func (this *Game) GetJoinModes(u *user.User, mode string, group string) (map[str
 	Data.Join.Group = group
 
 	var Result map[string]gamedata.JoinInfo
+	print("Need to Get Join Modes\n")
 	err := this.Message(Data, &Result)
 
 	return Result, err
@@ -151,6 +157,7 @@ func (this *Game) StartClash(mode string, PreStart map[string]map[string]string)
 	}
 
 	var Result gamedata.StartInfo
+	print("Time to Start the Clash!\n")
 	err := this.Message(Data, &Result)
 
 	return Result, err

@@ -3,8 +3,8 @@ package user
 import (
 	"../"
 	"github.com/HairyMezican/goauth2/oauth"
-	"launchpad.net/mgo"
-	"launchpad.net/mgo/bson"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 	"../../global"
 	"github.com/HairyMezican/SimpleRedis/redis"
 )

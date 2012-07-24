@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Codec struct {
@@ -43,7 +44,7 @@ func (this codecMap) DecodeMessage(m message, result interface{}) error {
 	codecName := strings.Split(m.mime, ";")[0]
 	codec := this[codecName]
 	if codec == nil {
-		return errors.New("Undefinted Codec for: " + m.mime)
+		return errors.New("Undefined Codec for: " + m.mime)
 	}
 	return codec.Decode(m.message, result)
 }
@@ -52,7 +53,7 @@ func (this message) Read(p []byte) (int, error) {
 	return this.message.Read(p)
 }
 
-func (this message) SendTo(url string, mh messageHandler) error {
+func (this message) contactSite(url string, mh messageHandler) error {
 	r, err := http.Post(url, this.mime, this)
 	if err != nil {
 		return err
@@ -64,6 +65,25 @@ func (this message) SendTo(url string, mh messageHandler) error {
 		mime:    r.Header.Get("content-type"),
 		message: r.Body,
 	})
+}
+
+func (this message) SendTo(url string, mh messageHandler) error {
+	result := make(chan error,1)
+
+	t := time.NewTimer(time.Second)
+	defer t.Stop()
+	
+	go func() {
+		result <- this.contactSite()
+	}()
+
+	select {
+	case <-t.C:
+		return errors.New("Timed Out")
+	case err := <-result:
+		return err
+	}
+	panic("unreachable!")
 }
 
 func (this message) GetResponse(url string, response interface{}) error {

@@ -57,16 +57,19 @@ func (this ProjectController) Show() {
 
 	currentUser, loggedIn := (login.V)(this.Vars).CurrentUser()
 	if g.Live && loggedIn {
+		print("working\n")
 		gameModes, err := g.GetGameModes(currentUser)
 		if err != nil {
 			this.Set("Error", "Could not contact host site:"+err.Error())
 			this.Finish()
 			return
 		}
+		print("got modes\n")
 
 		// set up mode display
 		var modes []modeDisplay
 		for modeID, modeInfo := range gameModes {
+			print("looking at mode\n")
 			newMode := modeDisplay{
 				Identifier: modeID,
 				Descriptor: modeInfo.Name,
@@ -75,6 +78,7 @@ func (this ProjectController) Show() {
 			}
 
 			for groupID, groupInfo := range *modeInfo.Groups {
+				print("looking at group")
 				newGroup := groupDisplay{
 					Identifier: groupID,
 					Descriptor: groupInfo.Name,
@@ -89,6 +93,7 @@ func (this ProjectController) Show() {
 		this.Set("GameModes", modes)
 		log.Println(modes)
 	}
+	print("Done\n")
 }
 
 func (this ProjectController) Update() {
@@ -178,12 +183,14 @@ func (this ProjectController) PostMemberJoin() {
 	}
 
 	joinMethods, err := g.GetJoinModes(currentUser, mode, group)
-
+	
 	if err != nil || len(joinMethods) == 0 {
+		print("problem!\n")
 		this.AddFlash("There was a problem joining the game")
 		this.RedirectTo(g.Url())
 		return
 	}
+	
 
 	if len(joinMethods) == 1 {
 		//only one way to join, so might was well automatically do it
@@ -192,7 +199,7 @@ func (this ProjectController) PostMemberJoin() {
 			return
 		}
 	}
-
+	
 	//display the user his joining choices
 	var joins []joinDisplay
 	for joinID, joinInfo := range joinMethods {
