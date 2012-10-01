@@ -1,11 +1,11 @@
 package controllers
 
 import (
-	"github.com/HairyMezican/TheRack/httper"
 	"../controller"
+	"../login"
 	"../models/clash"
 	"encoding/json"
-	"../login"
+	"github.com/HairyMezican/TheRack/httper"
 )
 
 type ClashController struct {
@@ -14,10 +14,10 @@ type ClashController struct {
 
 func (this ClashController) Get() {
 	c := this.GetVar("Clash").(clash.Clash)
-	
+
 	//find out if the current user is a player in the chosen clash
 	user, loggedIn := (login.V)(this.Vars).CurrentUser()
-	
+
 	//redirect the user to the clash (if they are a participant, set the url vals accordingly)
 	if loggedIn {
 		this.RedirectTo(c.PlayerUrl(user.ClashTag))
@@ -27,10 +27,10 @@ func (this ClashController) Get() {
 }
 
 func (this ClashController) Update() {
-	c := this.GetVar("Clash").(clash.Clash)
+	c := this.GetVar("Clash").(*clash.Clash)
 	r := (httper.V)(this.Vars).GetRequest()
 	var m struct {
-		Remove *string `json:"remove"`
+		Remove  *string     `json:"remove"`
 		Results *[][]string `json:"results"`
 	}
 	json.NewDecoder(r.Body).Decode(&m)
@@ -48,8 +48,8 @@ func init() {
 	controller.RegisterController(&ClashController{}, "clashes", "Clash", func(s string, vars map[string]interface{}) (interface{}, bool) {
 		c := clash.FromHash(clash.Hash(s))
 		if !c.Exists() {
-			return nil,false
+			return nil, false
 		}
-		return c,true
+		return c, true
 	}).AddTo(Root)
 }

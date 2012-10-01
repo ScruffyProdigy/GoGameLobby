@@ -1,15 +1,15 @@
 package websocketcontrol
 
 import (
-	"github.com/HairyMezican/Middleware/websocketer"
+	"../global"
 	"../login"
 	"../models/user"
 	"../pubsuber"
-	"github.com/HairyMezican/SimpleRedis/redis"
 	"../trigger"
-	"../global"
 	"encoding/json"
 	"github.com/HairyMezican/Middleware/logger"
+	"github.com/HairyMezican/Middleware/websocketer"
+	"github.com/HairyMezican/SimpleRedis/redis"
 	"github.com/HairyMezican/TheRack/httper"
 	"github.com/HairyMezican/TheRack/rack"
 	"io"

@@ -1,13 +1,14 @@
 package clash
 
 import (
-	"../../global"
-	"github.com/HairyMezican/SimpleRedis/redis"
-	"encoding/base64"
-	"crypto/rand"
-	neturl "net/url"
-	"../../pubsuber"
 	"../../gamedata"
+	"../../global"
+	"../../pubsuber"
+	"bytes"
+	"crypto/rand"
+	"encoding/base32"
+	"github.com/HairyMezican/SimpleRedis/redis"
+	neturl "net/url"
 )
 
 type Hash string
@@ -17,19 +18,20 @@ const (
 )
 
 func NewHash() Hash {
-	var bytes [hashLength]byte
-	rand.Read(bytes[:])
-	
-	en := base64.URLEncoding
-	result := make([]byte, en.EncodedLen(len(bytes))) 
-    en.Encode(result, bytes[:])
+	var randomBytes [hashLength]byte
+	rand.Read(randomBytes[:])
 
-	return Hash(result)
+	en := base32.StdEncoding
+	result := make([]byte, en.EncodedLen(len(randomBytes)))
+	en.Encode(result, randomBytes[:])
+
+	return Hash(bytes.ToLower(result))
 }
 
 type Clash struct {
 	id Hash
 }
+
 /*
 Private methods
 */
@@ -37,7 +39,7 @@ Private methods
 //Redis Functions
 
 func (this *Clash) Prefix() redis.Prefix {
-	return global.Redis.Prefix("Clash "+string(this.id)+ " ")
+	return global.Redis.Prefix("Clash " + string(this.id) + " ")
 }
 
 func (this *Clash) base() redis.Hash {
@@ -49,7 +51,7 @@ func (this *Clash) url() redis.HashString {
 }
 
 func (this *Clash) playerUrl(clashtag string) redis.HashString {
-	return this.base().String("PlayerUrl "+clashtag)
+	return this.base().String("PlayerUrl " + clashtag)
 }
 
 func (this *Clash) game() redis.HashString {
@@ -66,14 +68,14 @@ func (this *Clash) players() redis.Set {
 
 func userClashes(clashtag string) redis.Set {
 	//return user.Prefix().Set("Clashes")
-	return global.Redis.Prefix("User "+clashtag+" ").Set("Clashes")
+	return global.Redis.Prefix("User " + clashtag + " ").Set("Clashes")
 }
 
 //constructor&destructor
-func (this *Clash) addPlayer(player string,options gamedata.PlayerStartInfo) {
+func (this *Clash) addPlayer(player string, options gamedata.PlayerStartInfo) {
 	this.players().Add(player)
 	userClashes(player).Add(string(this.id))
-	
+
 	urlvals := make(neturl.Values)
 	for k, v := range options.UrlValues {
 		urlvals.Add(k, v)
@@ -81,11 +83,11 @@ func (this *Clash) addPlayer(player string,options gamedata.PlayerStartInfo) {
 	query := urlvals.Encode()
 
 	//TODO: We had the url, game and name in the function before, come up with a more elegant way of transfering them
-	url := this.Url()	
+	url := <-this.url().Get()
 	if query != "" {
 		url += "?" + query
 	}
-	
+
 	this.playerUrl(player).Set(url)
 	pubsuber.User(player).SendMessage(map[string]map[string]string{"start": map[string]string{"Game": this.Game(), "Mode": this.Mode()}})
 }
@@ -96,12 +98,12 @@ type Mode interface {
 	Mode() string
 }
 
-func (this *Clash) setup(m Mode,psi gamedata.StartInfo) {
+func (this *Clash) Setup(game, mode string, psi gamedata.StartInfo) {
 	this.url().Set(psi.Url)
-	this.game().Set(m.Game())
-	this.mode().Set(m.Mode())
-	for player,options := range(psi.Players) {
-		this.addPlayer(player,options)
+	this.game().Set(game)
+	this.mode().Set(mode)
+	for player, options := range psi.Players {
+		this.addPlayer(player, options)
 	}
 }
 
@@ -109,33 +111,24 @@ func (this *Clash) teardown() {
 	this.base().Delete()
 	this.players().Delete()
 }
- 
+
 /*
 Public Methods
 */
 
-
 //	Getters
-
-func New(m Mode,psi gamedata.StartInfo) *Clash {
+func New() *Clash {
 	this := new(Clash)
 	this.id = NewHash()
-	this.setup(m,psi)
 	return this
 }
 
-func FromUser(clashtag string) []*Clash {
-	print("a\n")
+func FromUser(clashtag string) []Clash {
 	clashhashes := <-userClashes(clashtag).Members()
-	print("b\n")
-	clashes := make([]*Clash,len(clashhashes))
-	print("c\n")
-	for i,hash := range(clashhashes) {
-		print("d\n")
+	clashes := make([]Clash, len(clashhashes))
+	for i, hash := range clashhashes {
 		clashes[i].id = Hash(hash)
-		print("e\n")
 	}
-	print("f\n")
 	return clashes
 }
 
@@ -144,6 +137,7 @@ func FromHash(h Hash) *Clash {
 	c.id = h
 	return c
 }
+
 //returns the clashtags of all involved users
 func (this *Clash) Players() []string {
 	return <-this.players().Members()
@@ -156,13 +150,13 @@ func (this *Clash) PlayerUrl(clashtag string) string {
 
 //removes a player from the clash
 func (this *Clash) RemovePlayer(clashtag string) {
-	userClashes(clashtag).Remove(clashtag)
+	userClashes(clashtag).Remove(string(this.id))
 }
 
 //finishes a clash, and lets it know what the results were
 func (this *Clash) Results(results [][]string) {
 	// TODO: update players scores here
-	
+
 	//delete the clash
 	this.teardown()
 }
@@ -184,18 +178,22 @@ func (this *Clash) Game() string {
 	return <-this.game().Get()
 }
 
-func (this *Clash) Details(player string) (string,string,string) {
+func (this *Clash) Details(player string) (string, string, string) {
 	playerUrlChan := this.playerUrl(player).Get()
 	game := this.game().Get()
 	mode := this.mode().Get()
-	url,ok := <-playerUrlChan
+	url, ok := <-playerUrlChan
 	if ok {
-		return <-game,<-mode,url
+		return <-game, <-mode, url
 	}
 	urlChan := this.url().Get()
-	return <-game,<-mode,<-urlChan
+	return <-game, <-mode, <-urlChan
 }
 
 func (this *Clash) Url() string {
 	return <-this.url().Get()
+}
+
+func (this *Clash) ResponseUrl() string {
+	return "/clashes/" + string(this.id) + "/"
 }

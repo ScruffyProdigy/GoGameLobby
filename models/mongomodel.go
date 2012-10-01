@@ -103,7 +103,7 @@ func init() {
 
 	session, err := mgo.Dial(mongoConfig.NetAddress)
 	if err != nil {
-		log.Fatal("Please Launch Mongo before running this\n")
+		log.Fatal("Please Launch Mongo before running this - " + err.Error() + "\n")
 		panic(err)
 	}
 	db = session.DB(mongoConfig.DBid)

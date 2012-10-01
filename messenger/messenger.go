@@ -68,13 +68,13 @@ func (this message) contactSite(url string, mh messageHandler) error {
 }
 
 func (this message) SendTo(url string, mh messageHandler) error {
-	result := make(chan error,1)
+	result := make(chan error, 1)
 
 	t := time.NewTimer(time.Second)
 	defer t.Stop()
-	
+
 	go func() {
-		result <- this.contactSite()
+		result <- this.contactSite(url, mh)
 	}()
 
 	select {

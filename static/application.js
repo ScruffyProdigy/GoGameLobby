@@ -1,4 +1,6 @@
 $(function(){
+	var base = "localhost:3000"
+//	var base = "clashcentral.com"
 	var isFocused = true;
 	var focusActions = new Array();
 	$(window).focus(function(){
@@ -24,7 +26,7 @@ $(function(){
 		c.send(JSON.stringify(message));
 	}
 	
-	c=new WebSocket('ws://localhost:3000');
+	c=new WebSocket('ws://'+base);
 	c.onmessage=function(msg){
 		msg = JSON.parse(msg.data);
 		if(msg.start) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"./clashgetter"
+	"./constants"
 	"./controllers"
 	"./loadconfiguration"
 	"./login"
@@ -29,13 +30,6 @@ import (
 	"os"
 )
 
-const (
-	debug = iota
-	release
-)
-
-const mode = debug
-
 func LoadFacebookData() (result facebooker.Data) {
 	err := configurations.Load("facebook", &result)
 	if err != nil {
@@ -50,13 +44,6 @@ func LoadGoogleData() (result googleplusser.Data) {
 		panic(err)
 	}
 	return
-}
-
-type TestDisplay string
-
-func (this TestDisplay) Run(vars map[string]interface{}, next func()) {
-	fmt.Println(this)
-	next()
 }
 
 func main() {
@@ -91,7 +78,7 @@ func main() {
 	rackup.Add(varser.Default{"Layout": "base"})
 	rackup.Add(encapsulator.AddLayout)
 	rackup.Add(statuser.SetErrorLayout)
-	if mode != debug {
+	if constants.Mode != constants.Debug {
 		rackup.Add(errorhandler.ErrorHandler) //in debug version, it's more useful to just let it crash, so we can get more error information
 	}
 	rackup.Add(sessioner.Middleware)
@@ -104,13 +91,9 @@ func main() {
 	rackup.Add(controllers.Root)
 
 	//alert the user as to where we are running
-	var site = ":80"
-	if mode == debug {
-		site = ":3000"
-	}
 
-	fmt.Print("\n\nStarting at localhost" + site + "!\n\n\n")
-	conn := httper.HttpConnection(site)
+	fmt.Print("\n\nStarting at " + constants.Site + "!\n\n\n")
+	conn := httper.HttpConnection(constants.Port)
 	err := conn.Go(rackup)
 
 	//We're ready to go!

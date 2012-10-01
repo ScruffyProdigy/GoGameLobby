@@ -1,15 +1,12 @@
 package game
 
 import (
-	"github.com/HairyMezican/SimpleRedis/redis"
-	"../../global"
 	"../../websocketcontrol"
-	"strings"
 	"../clash"
 	"../user"
+	"fmt"
+	"strings"
 )
-
-var QueueMutex *redis.ReadWriteMutex
 
 type Start struct {
 	Game string `json:"game"`
@@ -21,8 +18,6 @@ type StartLoc struct {
 }
 
 func init() {
-	QueueMutex = global.Redis.ReadWriteMutex("QueueMutex", 16)
-
 	websocketcontrol.AddLogoutChore(func(username string) {
 		RemoveFromAllQueues(username)
 	})
@@ -38,8 +33,8 @@ func GetUserClashes(user string) (result []UserClash) {
 	clashes := clash.FromUser(user)
 
 	result = make([]UserClash, 0, len(clashes))
-	for _, c := range(clashes) {
-		game,mode,url := c.Details(user)
+	for _, c := range clashes {
+		game, mode, url := c.Details(user)
 
 		clashStruct := UserClash{
 			Game: game,
@@ -57,24 +52,18 @@ type UserQueue struct {
 }
 
 func GetUserQueues(u string) (result []UserQueue) {
-	print("a\n")
-	queues := <-(&user.User{ClashTag:u}).Queues().Members()
-	print("b\n")
+	queues := <-(&user.User{ClashTag: u}).Queues().Members()
 
 	result = make([]UserQueue, 0, len(queues))
-	print("c\n")
 	for _, queue := range queues {
-		print("d\n")
 		queueInfo := strings.SplitN(queue, sEp, 2)
-		print("e\n")
+		fmt.Println("Original: - ", queue)
+		fmt.Println("Result: - ", queueInfo)
 		queueStruct := UserQueue{
 			Game: G.GameFromName(queueInfo[0]),
 			Mode: queueInfo[1],
 		}
-		print("f\n")
 		result = append(result, queueStruct)
-		print("g\n")
 	}
-	print("h\n")
 	return
 }

@@ -2,10 +2,13 @@ package game
 
 import (
 	"../"
+	"../../constants"
 	"../../gamedata"
 	"../../messenger"
+	"../clash"
 	"../lodge"
 	"../user"
+	"fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 )
@@ -38,7 +41,29 @@ type Game struct {
 }
 
 func NewGame() *Game {
-	return new(Game)
+	g := new(Game)
+	g.Modes = make(map[string]*Mode)
+	return g
+}
+
+func (this *Game) newMode(mode string) (*Mode, error) {
+	playercounts, err := this.GetPlayerCounts(mode)
+	if err != nil {
+		return nil, err
+	}
+
+	m := new(Mode)
+	m.GroupCount = playercounts.Players
+	m.parent = this
+	m.Mode = mode
+	m.Game = this.Name
+
+	return m, nil
+}
+
+func (this *Game) ClearModes() {
+	this.Modes = make(map[string]*Mode)
+	model.Save(this)
 }
 
 //		Interface Methods
@@ -79,7 +104,8 @@ func (this *Game) Url() string {
 }
 
 func (this *Game) ProjectUrl() string {
-	return "/lodges/" + this.Lodge + "/projects/" + this.Name + "/"
+	result := "/lodges/" + this.Lodge + "/projects/" + this.Name + "/"
+	return result
 }
 
 func (this *Game) GameUrl() string {
@@ -87,10 +113,8 @@ func (this *Game) GameUrl() string {
 }
 
 func (this *Game) Message(message, result interface{}) error {
-	print("Querying Game - ")
-	err := messenger.JSONmessage(message, this.CommUrl, result)
-	print("Response Received\n")
-	return err
+	fmt.Println(this)
+	return messenger.JSONmessage(message, this.CommUrl, result)
 }
 
 func (this *Game) GetPlayerCounts(modename string) (gamedata.ModePlayerCounts, error) {
@@ -100,7 +124,6 @@ func (this *Game) GetPlayerCounts(modename string) (gamedata.ModePlayerCounts, e
 	Data.Mode.Mode = modename
 
 	var Result gamedata.ModePlayerCounts
-	print("Need To Get Player Counts\n")
 	err := this.Message(Data, &Result)
 
 	return Result, err
@@ -113,7 +136,6 @@ func (this *Game) GetGameModes(u *user.User) (map[string]gamedata.ModeInfo, erro
 	Data.Mode.User = u.ClashTag
 
 	var Result map[string]gamedata.ModeInfo
-	print("Need to Get Game Modes\n")
 	err := this.Message(Data, &Result)
 
 	return Result, err
@@ -128,18 +150,20 @@ func (this *Game) GetJoinModes(u *user.User, mode string, group string) (map[str
 	Data.Join.Group = group
 
 	var Result map[string]gamedata.JoinInfo
-	print("Need to Get Join Modes\n")
 	err := this.Message(Data, &Result)
 
 	return Result, err
 }
 
-func (this *Game) StartClash(mode string, PreStart map[string]map[string]string) (gamedata.StartInfo, error) {
+func (this *Game) StartClash(mode string, PreStart map[string]map[string]string) error {
 	var Data struct {
 		Start gamedata.PreStartInfo `json:"start"`
 	}
 
+	c := clash.New()
+
 	Data.Start.Mode = mode
+	Data.Start.ResultUrl = constants.Site + c.ResponseUrl()
 	Data.Start.Groups = make(map[string]gamedata.GroupJoinInfo)
 
 	for group, playeroptions := range PreStart {
@@ -157,49 +181,30 @@ func (this *Game) StartClash(mode string, PreStart map[string]map[string]string)
 	}
 
 	var Result gamedata.StartInfo
-	print("Time to Start the Clash!\n")
 	err := this.Message(Data, &Result)
 
-	return Result, err
+	if err == nil {
+		c.Setup(this.Name, mode, Result)
+	} else {
+		//delete the clash
+	}
+
+	return err
 }
 
 func (this *Game) GetMode(mode string) (*Mode, error) {
 	m, ok := this.Modes[mode]
 	if !ok {
 		var err error
-		m, err = this.SetUpMode(mode)
+		m, err = this.newMode(mode)
 		if err != nil {
 			return nil, err
 		}
+		this.Modes[mode] = m
+		model.Save(this)
 	}
-	m.game = this.Name
-	m.mode = mode
+	m.parent = this //this will not be loaded from Mongo, and needs to be set here
 	return m, nil
-}
-
-func (this *Game) SetUpMode(mode string) (*Mode, error) {
-	playercounts, err := this.GetPlayerCounts(mode)
-	if err != nil {
-		return nil, err
-	}
-
-	if this.Modes == nil {
-		this.Modes = make(map[string]*Mode)
-	}
-
-	m := new(Mode)
-	m.GroupCount = playercounts.Players
-
-	this.Modes[mode] = m
-
-	model.Save(this)
-
-	return m, nil
-}
-
-func (this *Game) ClearModes() {
-	this.Modes = nil
-	model.Save(this)
 }
 
 /*

@@ -16,39 +16,40 @@
 				{{end}}		
 			</ul>
 		</nav>
-		{{if .Clashes}}
 			<section class="clashes">
-				<header>
-					<h1>Clashes</h1>
-					<p>You are currently participating in the following clashes:</p>
-				</header>
-				<ul>
-				{{range .Clashes}}
-					<a href="{{.Url}}" class="clash-{{.Game}}{{.Mode}}">
-						<li>
-							{{.Game}} - {{.Mode}}
-						</li>
-					</a>
+				{{if .Clashes}}
+					<header>
+						<h1>Clashes</h1>
+						<p>You are currently participating in the following clashes:</p>
+					</header>
 				{{end}}
-			</section>
-		{{end}}
-		{{if .Queues}}
-			<section class="queues">
-				<header>
-					<h1>Queues</h1>
-					<p>You are currently waiting in the following queues:</p>
-				</header>
 				<ul>
-				{{range .Queues}}
-					<a href="{{.Game.Url}}" class="queue-{{.Game.Name}}{{.Mode}}">
-						<li>
-							{{.Game.Name}} - {{.Mode}}
-						</li>
-					</a>
-				{{end}}
+					{{range .Clashes}}
+						<a href="{{.Url}}" class="clash-{{.Game}}{{.Mode}}" target="_blank">
+							<li>
+								{{.Game}} - {{.Mode}}
+							</li>
+						</a>
+					{{end}}
 				</ul>
 			</section>
-		{{end}}
+			<section class="queues">
+				{{if .Queues}}
+					<header>
+						<h1>Queues</h1>
+						<p>You are currently waiting in the following queues:</p>
+					</header>
+				{{end}}
+				<ul>
+					{{range .Queues}}
+						<a href="{{.Game.Url}}" class="queue-{{.Game.Name}}{{.Mode}}">
+							<li>
+								{{.Game.Name}} - {{.Mode}}
+							</li>
+						</a>
+					{{end}}
+				</ul>
+			</section>
 		{{if .flashes}}
 			<section class="flashes">
 				<header><h1>Attention</h1></header>

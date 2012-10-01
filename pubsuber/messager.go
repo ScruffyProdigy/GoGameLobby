@@ -1,10 +1,10 @@
 package pubsuber
 
 import (
-	"github.com/HairyMezican/SimpleRedis/redis"
 	"../global"
 	"../trigger"
 	"encoding/json"
+	"github.com/HairyMezican/SimpleRedis/redis"
 	"io"
 )
 
@@ -66,7 +66,7 @@ func (this userTarget) SendMessage(message interface{}) {
 }
 
 func (this userTarget) ReceiveMessages(action func(message string)) io.Closer {
-	_,subscription := userMessageChannel(this.user).Subscribe(action)
+	_, subscription := userMessageChannel(this.user).Subscribe(action)
 	userInstanceCount(this.user).Increment()
 
 	for {
@@ -101,7 +101,7 @@ func (this urlTarget) SendMessage(message interface{}) {
 }
 
 func (this urlTarget) ReceiveMessages(action func(message string)) io.Closer {
-	_,result := urlMessageChannel(this.url).Subscribe(action)
+	_, result := urlMessageChannel(this.url).Subscribe(action)
 	return result
 }
 

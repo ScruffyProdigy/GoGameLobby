@@ -2,11 +2,11 @@ package user
 
 import (
 	"../"
+	"../../global"
+	"github.com/HairyMezican/SimpleRedis/redis"
 	"github.com/HairyMezican/goauth2/oauth"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"../../global"
-	"github.com/HairyMezican/SimpleRedis/redis"
 )
 
 var U *UserCollection = new(UserCollection)
