@@ -4,7 +4,6 @@ import (
 	"../../websocketcontrol"
 	"../clash"
 	"../user"
-	"fmt"
 	"strings"
 )
 
@@ -57,8 +56,6 @@ func GetUserQueues(u string) (result []UserQueue) {
 	result = make([]UserQueue, 0, len(queues))
 	for _, queue := range queues {
 		queueInfo := strings.SplitN(queue, sEp, 2)
-		fmt.Println("Original: - ", queue)
-		fmt.Println("Result: - ", queueInfo)
 		queueStruct := UserQueue{
 			Game: G.GameFromName(queueInfo[0]),
 			Mode: queueInfo[1],

@@ -4,7 +4,6 @@ import (
 	"../../global"
 	"../user"
 	"errors"
-	"fmt"
 	"github.com/HairyMezican/SimpleRedis/redis"
 )
 
@@ -54,7 +53,6 @@ func (m Mode) checkForStart() {
 		m.queueMutex().Read.Force(func() {
 			for group, full := range m.GroupCount {
 				count := <-m.queues(group).Length()
-				fmt.Println("Mode:", m.Mode, count, "/", full)
 				if count < full {
 					isFull = false
 				}
@@ -167,7 +165,6 @@ func (m Mode) queueMutex() *redis.ReadWriteMutex {
 }
 
 func RemoveFromAllQueues(user string) (err error) {
-	fmt.Println("Logging", user, "out from all games")
 	queues := GetUserQueues(user)
 	for _, queue := range queues {
 		mode, _ := queue.Game.GetMode(queue.Mode)

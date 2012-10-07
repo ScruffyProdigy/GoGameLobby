@@ -8,6 +8,7 @@ import (
 	"./login"
 	"./models"
 	"./requestlogger"
+	_ "./roomchat"
 	"./staticer"
 	"./varser"
 	"./websocketcontrol"
@@ -27,8 +28,18 @@ import (
 	"github.com/HairyMezican/TheRack/rack"
 	"github.com/HairyMezican/TheTemplater/templater"
 	"log"
+	"math/rand"
 	"os"
 )
+
+type randomer struct{}
+
+func (this randomer) Run(vars map[string]interface{}, next func()) {
+	for i := 1; i < 10; i++ {
+		vars[fmt.Sprint("Rand", i)] = rand.Int()
+	}
+	next()
+}
 
 func LoadFacebookData() (result facebooker.Data) {
 	err := configurations.Load("facebook", &result)
@@ -76,6 +87,7 @@ func main() {
 	rackup.Add(requestlogger.M)
 	rackup.Add(staticer.New("/static/", "static"))
 	rackup.Add(varser.Default{"Layout": "base"})
+	rackup.Add(randomer{})
 	rackup.Add(encapsulator.AddLayout)
 	rackup.Add(statuser.SetErrorLayout)
 	if constants.Mode != constants.Debug {

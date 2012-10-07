@@ -8,7 +8,6 @@ import (
 	"../clash"
 	"../lodge"
 	"../user"
-	"fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 )
@@ -113,7 +112,6 @@ func (this *Game) GameUrl() string {
 }
 
 func (this *Game) Message(message, result interface{}) error {
-	fmt.Println(this)
 	return messenger.JSONmessage(message, this.CommUrl, result)
 }
 

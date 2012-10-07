@@ -25,12 +25,9 @@ func userInstanceCount(user string) redis.Integer {
 }
 
 type Target interface {
-	SendMessage(message interface{})
+	SendMessage(messagetype string, message interface{})
 	ReceiveMessages(action func(message string)) io.Closer
 	IsActive() bool
-}
-
-type UserTarget interface {
 }
 
 func User(name string) Target {
@@ -41,14 +38,8 @@ type userTarget struct {
 	user string
 }
 
-func makeString(message interface{}) string {
-
-	stringMessage, ok := message.(string)
-	if ok {
-		return stringMessage
-	}
-
-	byteMessage, err := json.Marshal(message)
+func makeString(messagetype string, message interface{}) string {
+	byteMessage, err := json.Marshal(map[string]interface{}{"Type": messagetype, "Data": message})
 	if err != nil {
 		panic(err)
 	}
@@ -56,8 +47,8 @@ func makeString(message interface{}) string {
 	return string(byteMessage)
 }
 
-func (this userTarget) SendMessage(message interface{}) {
-	stringMessage := makeString(message)
+func (this userTarget) SendMessage(messagetype string, message interface{}) {
+	stringMessage := makeString(messagetype, message)
 	if this.IsActive() {
 		userMessageChannel(this.user).Publish(stringMessage)
 	} else {
@@ -95,12 +86,13 @@ type urlTarget struct {
 	url string
 }
 
-func (this urlTarget) SendMessage(message interface{}) {
-	stringMessage := makeString(message)
+func (this urlTarget) SendMessage(messagetype string, message interface{}) {
+	stringMessage := makeString(messagetype, message)
 	urlMessageChannel(this.url).Publish(stringMessage)
 }
 
 func (this urlTarget) ReceiveMessages(action func(message string)) io.Closer {
+	print("Receiving Messages for " + this.url + "\n")
 	_, result := urlMessageChannel(this.url).Subscribe(action)
 	return result
 }

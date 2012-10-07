@@ -1,54 +1,60 @@
+function sendMessage(type, data) {
+	var message = new Object();
+	message.type = type;
+	message.data = data;
+	conn.send(JSON.stringify(message));
+}
+
 $(function(){
-	var base = "localhost:3000"
-//	var base = "clashcentral.com"
+	var base = window.location.host;
+	var path = window.location.pathname
 	var isFocused = true;
 	var focusActions = new Array();
 	$(window).focus(function(){
 		isFocused = true;
-		$("body").css("background-color","#ffffff")
+		$("body").css("background-color","#ffffff");
 		while(focusActions.length > 0) {
 			var action = focusActions.shift();
-			action()
+			action();
 		}
 	}).blur(function(){	
-		$("body").css("background-color","#eeeeee")
+		$("body").css("background-color","#eeeeee");
 		isFocused = false;
 	});
 	
-	var onGainFocus = function(action) {
+	function onGainFocus(action) {
 		focusActions.push(action);
 	}
 	
-	var startGame = function(c,gameInfo) {
-		var message = new Object()
-		message.type = "start"
-		message.data = gameInfo.start
-		c.send(JSON.stringify(message));
+	function startGame(gameInfo) {
+		sendMessage("start",gameInfo)
 	}
 	
-	c=new WebSocket('ws://'+base);
-	c.onmessage=function(msg){
+	conn=new WebSocket('ws://'+base+path);
+	conn.onmessage = function(msg){
 		msg = JSON.parse(msg.data);
-		if(msg.start) {
-			//remove queues from list
-			$(".queue-"+msg.start.game+msg.start.mode).remove();
-			if(isFocused) {
-				//start the game
-				startGame(c,msg);
-			} else {
-				//set the callback once we regain focus
-				onGainFocus(function(){
-					//start the game
-					startGame(c,msg);
-				});
-				//and in the meantime, alert the user that their queue has started
+		var type = msg.Type;
+		msg = msg.Data;
+		switch(type) {
+			case "start":
+				//remove queues from list
+				$(".queue-"+msg.game+msg.mode).remove();
 				alert("Your game has started");
-			}
-		}
-		if(msg.startloc) {
-			alert("New Window!")
-			//open a new window with the start location
-			window.open(msg.startloc)
+			break;
+			case "roomchat":
+				$(".roomchat .chatbox").prepend("<p><a href='\\users\\"+msg.Name+"'>"+msg.Name+"</a>  "+msg.Text+"</p>")
+			break;
 		}
 	};
+	
+	
+	$(".roomchat .chatcontrol .submit").click(function() {
+		var message = new Object();
+		message.url = window.location.pathname;
+		message.text = $(".roomchat .chatcontrol .message").val();
+		sendMessage("roomchat",message);
+		
+		$(".roomchat .chatcontrol .message").val("");
+		return false
+	});
 });

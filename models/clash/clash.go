@@ -89,7 +89,7 @@ func (this *Clash) addPlayer(player string, options gamedata.PlayerStartInfo) {
 	}
 
 	this.playerUrl(player).Set(url)
-	pubsuber.User(player).SendMessage(map[string]map[string]string{"start": map[string]string{"Game": this.Game(), "Mode": this.Mode()}})
+	pubsuber.User(player).SendMessage("start", map[string]string{"Game": this.Game(), "Mode": this.Mode()})
 }
 
 //Hack: I would just use mode directly, but it causes an import loop, so just using an interface of it
