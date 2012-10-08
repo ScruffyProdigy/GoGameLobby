@@ -3,6 +3,7 @@ package user
 import (
 	"../"
 	"../../global"
+	"errors"
 	"github.com/HairyMezican/SimpleRedis/redis"
 	"github.com/HairyMezican/goauth2/oauth"
 	"labix.org/v2/mgo"
@@ -26,8 +27,11 @@ type User struct {
 	ClashTag       string
 	Points         int
 	Authorizations []AuthorizationData
+	//TODO: should probably change these to some other data structure than an unsorted list
 	Lodges         []string //we could use ObjectId's, but then we'd have to load the lodge into memory more often to get it's name
-	//of course, by using the lodge's name, it means if the lodge ever gets renamed, we'll have to update all of the users
+	Friends        []string //once again, we could use ObjectId's but we'd have to load every user into memory to get their names
+	FriendRequests []string //ditto
+	//of course, by using the lodges' and the users' names, it means if they ever get renamed, we'll have to update all of the users
 }
 
 type AuthorizationData struct {
@@ -73,6 +77,91 @@ func (this *User) Collection() model.Collection {
 
 func (this *User) GetID() bson.ObjectId {
 	return this.ID
+}
+
+func (this *User) RequestFriend(friend string) error {
+	if this.IsFriend(friend) {
+		return errors.New("You are already Friends")
+	}
+	if err := this.AcceptRequest(friend); err == nil {
+		return nil
+	}
+	other := U.UserFromClashTag(friend)
+	other.FriendRequests = append(other.FriendRequests, this.ClashTag)
+	model.Save(other)
+	return nil
+}
+
+func (this *User) removeRequest(friend string) bool {
+	for i, name := range this.FriendRequests {
+		if name == friend {
+			this.FriendRequests[i] = this.FriendRequests[len(this.FriendRequests)-1]
+			this.FriendRequests = this.FriendRequests[:len(this.FriendRequests)-1]
+			return true
+		}
+	}
+	return false
+}
+
+func (this *User) HasRequest(friend string) bool {
+	for _, name := range this.FriendRequests {
+		if name == friend {
+			return true
+		}
+	}
+	return false
+}
+
+func (this *User) AcceptRequest(friend string) error {
+	if this.removeRequest(friend) {
+		this.AddFriend(friend)
+		return nil
+	}
+	return errors.New("No Request Found")
+}
+
+func (this *User) DenyRequest(friend string) error {
+	if this.removeRequest(friend) {
+		model.Save(this)
+		return nil
+	}
+	return errors.New("No Request Found")
+}
+
+func (this *User) IsFriend(friend string) bool {
+	for _, f := range this.Friends {
+		if f == friend {
+			return true
+		}
+	}
+	return false
+}
+
+func (this *User) addFriend(friend string) {
+	this.Friends = append(this.Friends, friend)
+	model.Save(this)
+}
+
+func (this *User) removeFriend(friend string) error {
+	for i, f := range this.Friends {
+		if f == friend {
+			this.Friends[i] = this.Friends[len(this.Friends)-1]
+			this.Friends = this.Friends[:len(this.Friends)-1]
+			model.Save(this)
+			return nil
+		}
+	}
+	return errors.New("You aren't friends")
+}
+
+func (this *User) AddFriend(friend string) {
+	this.addFriend(friend)
+	U.UserFromClashTag(friend).addFriend(this.ClashTag)
+}
+
+func (this *User) Unfriend(friend string) {
+	this.removeFriend(friend)
+	U.UserFromClashTag(friend).removeFriend(this.ClashTag)
 }
 
 func (this *User) SetID(id bson.ObjectId) {

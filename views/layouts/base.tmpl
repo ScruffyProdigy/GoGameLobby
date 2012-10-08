@@ -16,6 +16,27 @@
 				{{end}}		
 			</ul>
 		</nav>
+		{{if .CurrentUser.FriendRequests}}
+			<section class="friendrequests">
+				<header><h1>You Have Friend Requests!</h1></header>
+				<ul>
+					{{range .CurrentUser.FriendRequests}}
+						<li> {{.}}							
+							<form action="\users\{{.}}" method="post">
+								<input type="hidden" name="_method" value="put" />
+								<input type="hidden" name="Action" value="FriendRequest" />
+								<input type="submit" value="Accept" />
+							</form>
+							<form action="\users\{{.}}" method="post">
+								<input type="hidden" name="_method" value="put" />
+								<input type="hidden" name="Action" value="DenyRequest" />
+								<input type="submit" value="Deny" />
+							</form>
+						</li>
+					{{end}}
+				</ul>
+			</section>
+		{{end}}
 			<section class="clashes">
 				{{if .Clashes}}
 					<header>

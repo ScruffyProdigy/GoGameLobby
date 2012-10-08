@@ -45,6 +45,19 @@ func (this UserController) New() {
 	this.Set("Title", "New User")
 }
 
+func (this UserController) Update() {
+	u := this.GetVar("User").(*user.User)
+	current := this.GetVar("CurrentUser").(*user.User)
+	switch this.GetFormValue("Action") {
+	case "FriendRequest":
+		current.RequestFriend(u.ClashTag)
+	case "DenyRequest":
+		current.DenyRequest(u.ClashTag)
+	case "Unfriend":
+		current.Unfriend(u.ClashTag)
+	}
+}
+
 func (this UserController) Create() {
 	var authData user.AuthorizationData
 	var err error
